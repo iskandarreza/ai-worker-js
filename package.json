@@ -1,11 +1,11 @@
 {
-  "name": "lightneuron-js",
+  "name": "ai-worker-js",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node utils/swEnvBuild.js && next dev",
+    "build": "node utils/swEnvBuild.js && next build",
     "start": "next start",
     "format": "prettier --write --no-semi --single-quote \"**/*.{js,md}\"",
     "lint": "next lint"
@@ -28,7 +28,9 @@
     "redux-thunk": "^2.4.2"
   },
   "devDependencies": {
+    "copy-webpack-plugin": "^11.0.0",
     "dotenv": "^16.0.3",
-    "prettier": "^2.8.8"
+    "prettier": "^2.8.8",
+    "worker-loader": "^3.0.8"
   }
 }
