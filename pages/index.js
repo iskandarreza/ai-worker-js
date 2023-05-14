@@ -1,5 +1,4 @@
-import { ThemeProvider, createTheme } from '@mui/material'
-import { Container } from '@mui/system'
+import { Container, ThemeProvider, createTheme } from '@mui/material'
 import Home from '../components/Home'
 
 const theme = createTheme({
