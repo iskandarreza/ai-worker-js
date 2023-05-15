@@ -849,7 +849,7 @@ const initWorker = async () => {
 
     async function startChat() {
       postMessage('message', 'Initiating chat...')
-      const response = await agent.chat(payload)
+      const response = await agent.chat({message: payload})
       postState(agent)
       postMessage('response', response)
       return response
