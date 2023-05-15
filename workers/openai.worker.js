@@ -33,7 +33,7 @@ const NEXT_PROMPT =
   '9 - Do not use commands to retrieve or analyze information you already have. Use your long term memory instead.\n' +
   '10 - Execute the "do_nothing" command ONLY if there is no other command to execute.\n' +
   '11 - Make sure to execute commands only with supported arguments.\n' +
-  '13 - If a command is not available, select an alternative command from the available options.\n' + // added extra directive 
+  '12 - If a command is not available, select an alternative command from the available options.\n' + // added extra directive 
   '13 - ONLY RESPOND IN THE FOLLOWING FORMAT: (MAKE SURE THAT IT CAN BE DECODED WITH JAVASCRIPT JSON.parse())\n' +
   JSON.stringify(_DEFAULT_RESPONSE_FORMAT) +
   '\n'
