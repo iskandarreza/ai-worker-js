@@ -452,6 +452,86 @@ class Agent {
       max_tokens,
     })
   }
+
+  runStagingTool() {
+    if (!this.staging_tool.hasOwnProperty('name')) {
+      const resp = 'Command name not provided. Make sure to follow the specified response format.';
+      this.history.push({
+        role: 'system',
+        content: resp,
+      });
+      return resp;
+    }
+  
+    const toolId = this.staging_tool.name;
+    const args = this.staging_tool.args || {};
+  
+    if (toolId === 'task_complete') {
+      const resp = { success: true };
+      this.history.push({
+        role: 'system',
+        content: `Command "${toolId}" with args ${JSON.stringify(args)} returned:\n${JSON.stringify(resp)}`,
+      });
+      return resp;
+    }
+  
+    if (toolId === 'do_nothing') {
+      const resp = { response: 'Nothing Done.' };
+      this.history.push({
+        role: 'system',
+        content: `Command "${toolId}" with args ${JSON.stringify(args)} returned:\n${JSON.stringify(resp)}`,
+      });
+      return resp;
+    }
+  
+    if (!this.staging_tool.hasOwnProperty('args')) {
+      const resp = 'Command args not provided. Make sure to follow the specified response format.';
+      this.history.push({
+        role: 'system',
+        content: resp,
+      });
+      return resp;
+    }
+  
+    const kwargs = this.staging_tool.args;
+    let found = false;
+
+    if (this.tools && typeof this.tools === 'object') {
+      for (const [k, tool] of Object.entries(this.tools)) {
+        if (k === toolId) {
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found) {
+      const resp = `Command "${toolId}" does not exist.`;
+      this.history.push({
+        role: 'system',
+        content: resp,
+      });
+      return resp;
+    }
+  
+    try {
+      const tool = this.tools[toolId];
+      const resp = tool.run(kwargs);
+      this.history.push({
+        role: 'system',
+        content: `Command "${toolId}" with args ${JSON.stringify(args)} returned:\n${JSON.stringify(resp)}`,
+      });
+      return resp;
+    } catch (e) {
+      const resp = `Command "${toolId}" failed with error: ${e}`;
+      this.history.push({
+        role: 'system',
+        content: resp,
+      });
+      return resp;
+    }
+  }
+  
 }
 
 class LocalMemory {
