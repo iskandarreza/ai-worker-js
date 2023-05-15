@@ -6,21 +6,19 @@ const DEFAULT_AGENT_NAME = 'AI-Worker'
 const DEFAULT_AGENT_DESCRIPTION =
   'Autonomous AI Agent that runs in a web worker thread'
 
-const _DEFAULT_RESPONSE_FORMAT = `{
-  "thoughts": {
-      "text": "What do you want to say to the user?",
-      "reasoning": "Why do you want to say this?",
-      "progress": "- A detailed list\n - of everything you have done so far",
-      "plan": "- short bulleted\n- list that conveys\n- long-term plan",
-      "speak": "thoughts summary to say to user",
+const _DEFAULT_RESPONSE_FORMAT = {
+  thoughts: {
+    text: "What do you want to say to the user?",
+    reasoning: "Why do you want to say this?",
+    progress: "- A detailed list\n - of everything you have done so far",
+    plan: "- short bulleted\n- list that conveys\n- long-term plan",
+    speak: "thoughts summary to say to user",
   },
-  "command": {"name": "next command in your plan", "args": {"arg name": "value"}},
-}`
-const DEFAULT_RESPONSE_FORMAT = `You should only respond in JSON format as described below \nResponse Format: \n${JSON.stringify(
-  _DEFAULT_RESPONSE_FORMAT,
-  null,
-  4
-)}\nEnsure the response can be parsed by JavaScript JSON.parse`
+  command: {name: "next command in your plan", args: {arg_name: "value"}},
+}
+const DEFAULT_RESPONSE_FORMAT = `You should only respond in JSON format as described below \nResponse Format: \n
+${JSON.stringify(_DEFAULT_RESPONSE_FORMAT)}
+\nEnsure the response can be parsed by JavaScript JSON.parse()`
 
 const NEXT_PROMPT =
   'INSTRUCTIONS:\n' +
@@ -35,16 +33,16 @@ const NEXT_PROMPT =
   '9 - Do not use commands to retrieve or analyze information you already have. Use your long term memory instead.\n' +
   '10 - Execute the "do_nothing" command ONLY if there is no other command to execute.\n' +
   '11 - Make sure to execute commands only with supported arguments.\n' +
-  '12 - ONLY RESPOND IN THE FOLLOWING FORMAT: (MAKE SURE THAT IT CAN BE DECODED WITH PYTHON JSON.LOADS())\n' +
-  JSON.stringify(_DEFAULT_RESPONSE_FORMAT, null, 4) +
+  '12 - ONLY RESPOND IN THE FOLLOWING FORMAT: (MAKE SURE THAT IT CAN BE DECODED WITH JAVASCRIPT JSON.parse())\n' +
+  JSON.stringify(JSON._DEFAULT_RESPONSE_FORMAT) +
   '\n'
 
 const INIT_PROMPT =
   'Do the following:\n' +
   '1 - Execute the next best command to achieve the goals.\n' +
   '2 - Execute the "do_nothing" command if there is no other command to execute.\n' +
-  '3 - ONLY RESPOND IN THE FOLLOWING FORMAT: (MAKE SURE THAT IT CAN BE DECODED WITH PYTHON JSON.LOADS())\n' +
-  JSON.stringify(_DEFAULT_RESPONSE_FORMAT, null, 4) +
+  '3 - ONLY RESPOND IN THE FOLLOWING FORMAT: (MAKE SURE THAT IT CAN BE DECODED WITH JAVACRIPT JSON.parse())\n' +
+  JSON.stringify(_DEFAULT_RESPONSE_FORMAT) +
   '\n'
 
 const AgentStates = {
@@ -203,21 +201,22 @@ class Agent {
     }
   }
 
-  async generateResponse(prompt) {
-    return await this.model.chat({
-      model: this.model,
-      prompt: prompt,
-      temperature: this.temperature,
-    })
-  }
+  // async generateResponse(prompt) {
+  //   return await this.model.chat({
+  //     model: this.model,
+  //     prompt: prompt,
+  //     temperature: this.temperature,
+  //     max_tokens: this.max_tokens
+  //   })
+  // }
 
-  async handleUserMessage(message) {
-    this.history.push(message)
-    const full_prompt = this.getFullPrompt(message.content)
-    const response = await this.generateResponse(full_prompt)
-    this.history.push({ role: 'system', content: response })
-    return { role: 'system', content: response }
-  }
+  // async handleUserMessage(message) {
+  //   this.history.push(message)
+  //   const full_prompt = this.getFullPrompt(message.content)
+  //   const response = await this.generateResponse(full_prompt)
+  //   this.history.push({ role: 'system', content: response })
+  //   return { role: 'system', content: response }
+  // }
 
   async chat(message = null, run_tool = false) {
     if (this.state === AgentStates.STOP) {
@@ -271,14 +270,17 @@ class Agent {
       token_count,
     })
 
-    let resp = await this.model.chat(full_prompt, {
+    const resp = await this.model.chat(full_prompt, {
       max_tokens,
       temperature: this.temperature,
     })
 
+    let parsedResp = resp.choices[0].message.content
+    
     try {
-      resp = this._load_json(resp)
-      this.plan = resp.plan
+      parsedResp = await this.loadJson(parsedResp)
+      self.postMessage({ parsedResp })
+      let plan = await parsedResp.thoughts.plan
 
       if (plan && Array.isArray(plan)) {
         if (
@@ -286,17 +288,17 @@ class Agent {
           (plan.length === 1 && plan[0].replace('-', '').length === 0)
         ) {
           this.staging_tool = { name: 'task_complete', args: {} }
-          this.staging_response = resp
+          this.staging_response = parsedResp
           this.state = AgentStates.STOP
         }
       } else {
-        if (typeof resp === 'object') {
-          if ('name' in resp) {
-            resp = { command: resp }
+        if (typeof parsedResp === 'object') {
+          if ('name' in parsedResp) {
+            parsedResp = { command: parsedResp }
           }
-          if (resp.command) {
-            this.staging_tool = resp.command
-            this.staging_response = resp
+          if (parsedResp.command) {
+            this.staging_tool = parsedResp.command
+            this.staging_response = parsedResp
             this.state = AgentStates.TOOL_STAGED
           } else {
             this.state = AgentStates.IDLE
@@ -306,7 +308,7 @@ class Agent {
         }
       }
 
-      const progress = resp.thoughts?.progress
+      const progress = await parsedResp.thoughts?.progress
       if (progress) {
         if (typeof plan === 'string') {
           this.progress.push(progress)
@@ -315,7 +317,7 @@ class Agent {
         }
       }
 
-      this.plan = resp.thoughts?.plan
+      this.plan = await parsedResp.thoughts?.plan
       if (plan) {
         if (typeof plan === 'string') {
           this.plan = [plan]
@@ -328,10 +330,12 @@ class Agent {
     this.history.push({ role: 'user', content: message })
     this.history.push({
       role: 'assistant',
-      content: typeof resp === 'object' ? JSON.stringify(resp) : resp,
+      content: typeof parsedResp === 'object' ? JSON.stringify(parsedResp) : await parsedResp,
     })
 
-    return resp
+    self.postMessage({ parsedResp: await parsedResp, state: this })
+
+    return await parsedResp
   }
 
   headerPrompt() {
@@ -390,6 +394,108 @@ class Agent {
     }
     return prompt.join('\n') + '\n'
   }
+
+  async loadJson(s, try_gpt = true) {
+    try {
+      self.postMessage({ loadJson: s });
+    
+      if (s.includes("Result: {")) {
+        s = s.split("Result: ")[0];
+      }
+      if (!s.includes("{") || !s.includes("}")) {
+        throw new Error("Invalid JSON format");
+      }
+    
+      try {
+        return JSON.parse(s);
+      } catch (error) {
+        self.postMessage({ error: error.message });
+    
+        s = s.substring(s.indexOf("{"), s.lastIndexOf("}") + 1);
+    
+        try {
+          return JSON.parse(s);
+        } catch (error) {
+          self.postMessage({ error: error.message });
+    
+          try {
+            s = s.replace(/\n/g, " ");
+            return s;
+          } catch (error) {
+            self.postMessage({ error: error.message });
+    
+            try {
+              return `${s}}`;
+            } catch (error) {
+              // Retry with GPT extraction
+              self.postMessage({ error: error.message });
+              if (try_gpt) {
+                s = await extractJsonWithGpt(s);
+                try {
+                  return s;
+                } catch (error) {
+                  self.postMessage({ error: error.message });
+                  return loadJson(s, false);
+                }
+              }
+              throw new Error("Unable to parse JSON");
+            }
+          }
+        }
+      }
+    } catch (error) {
+      self.postMessage({ error: error.message });
+      throw error;
+    }
+  }
+  
+  
+  
+  async extractJsonWithGpt(s) {
+    self.postMessage({extractJsonWithGpt: s})
+
+    const func = `function convertToJson(response) {
+      // Implement the logic to convert the given string to a JSON string
+      // of the desired format
+      // Ensure the result can be parsed by JSON.parse
+      // Return the JSON string
+    }`;
+  
+    const desc = `Convert the given string to a JSON string of the form
+  ${JSON.stringify(DEFAULT_RESPONSE_FORMAT_, null, 4)}
+  Ensure the result can be parsed by JSON.parse.`;
+  
+    const args = [s];
+  
+    const msgs = [
+      {
+        role: "system",
+        content: `You are now the following JavaScript function:\n\n${func}\n\nOnly respond with your 'return' value.`,
+      },
+      { role: "user", content: args.join(", ") },
+    ];
+
+    const token_count = this.model.countTokens(message)
+    const token_limit = await this.model.getTokenLimit()
+    const max_tokens = Math.min(1000, Math.max(token_limit - token_count, 0))
+  
+    return this.model.chat({
+      messages: msgs,
+      temperature: 0.0,
+      max_tokens
+    });
+  }
+  
+  
+  // try {
+  //   const json = loadJson(inputString);
+  //   console.log(json);
+  // } catch (error) {
+  //   console.error("Failed to load JSON.");
+  // }
+  
+
+  
 }
 
 class LocalMemory {
@@ -491,8 +597,10 @@ class OpenAIModel {
   async chat(messages, maxTokens = null, temperature = 0.8) {
     // debug messages
     self.postMessage({ modelChat: { messages, maxTokens, temperature } })
-    const api_key = await this.getOpenAiKey()
+    // const api_key = await this.getOpenAiKey()
     const { max_tokens } = maxTokens
+    this.max_tokens = maxTokens
+    this.temperature = temperature
 
     const num_retries = 3
     self.postMessage({
@@ -505,35 +613,30 @@ class OpenAIModel {
     })
     for (let i = 0; i < num_retries; i++) {
       try {
-        return fetch('/api/openai', {
+        const apiKeyResponse = await fetch('/api/openai', {
           method: 'POST',
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            const { apiKey } = data
-            // Send a request to the OpenAI API
-            fetch(apiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${apiKey}`,
-              },
-              body: JSON.stringify({
-                model: this.model,
-                messages,
-                max_tokens,
-                temperature,
-              }),
-            })
-              .then((response) => response.json())
-              .then((data) => {
-                // Return the response to the main thread
-                self.postMessage({ type: 'agentMessage', payload: data })
-              })
-              .catch((error) => {
-                console.error(error)
-              })
-          })
+        });
+        const { apiKey } = await apiKeyResponse.json();
+      
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: this.model,
+            messages,
+            max_tokens,
+            temperature,
+          }),
+        });
+      
+        const data = await response.json();
+      
+        self.postMessage({ type: 'agentMessage', payload: data });
+        return data;
+
       } catch (error) {
         if (error.statusCode === 429) {
           console.warn('Rate limit exceeded. Retrying after 20 seconds.')
@@ -650,11 +753,19 @@ const initWorker = async () => {
 
   // agent.chat(JSON.stringify(testData))
 
-  self.onmessage = (event) => {
+  self.onmessage = async (event) => {
     if (event.data.type === 'init') {
       self.id = event.data.payload.id
     } else if (event.data.type === 'chat') {
-      agent.chat(event.data.payload)
+      await agent.chat(event.data.payload)
+      // self.postMessage({
+      //   type: 'state',
+      //   payload: {
+      //     fromId: self.id,
+      //     toId: 'all',
+      //     content: agent,
+      //   },
+      // })
     } else if (event.data.type === 'state') {
       self.postMessage({
         type: 'state',
