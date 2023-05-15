@@ -245,7 +245,51 @@ class Agent {
       token_count,
     })
 
-    const resp = await this.model.chat(full_prompt, {
+    // Check if tool not available, and if agent is trying to use the unavailable tool again, assert as user
+    let remindAgent = false
+    let modifiedPrompt = [...full_prompt]
+    if (typeof this.tool_response === 'string' && this.tool_response.includes('is not available. Please choose a different command.')) {
+
+      let lastResponse
+      for (let i = modifiedPrompt.length - 1; i >= 0; i--) {
+        if (modifiedPrompt[i].role === 'assistant') {
+          lastResponse = JSON.parse(modifiedPrompt[i].content);
+          break;
+        }
+      }
+
+      let toolId = lastResponse?.command?.name || 'unknown tool';
+
+      self.postMessage({toolId, state: this})
+
+      if (toolId === this.staging_tool?.name) {
+        
+        const remindAsUser = {
+          role: 'user',
+          content: `Reminder: The tool "${toolId}" is not available. Please choose a different command.`,
+        };
+
+        // Find the index of the last user message
+        let lastUserIndex = -1;
+        for (let i = modifiedPrompt.length - 1; i >= 0; i--) {
+          if (modifiedPrompt[i].role === 'user') {
+            lastUserIndex = i;
+            break;
+          }
+        }
+
+        if (lastUserIndex !== -1) {
+          // Replace the last user message with the modified message
+          modifiedPrompt[lastUserIndex] = remindAsUser;
+          remindAgent = true
+        }
+
+        self.postMessage({modifiedPrompt, remindAgent})
+      }
+
+    }
+
+    const resp = await this.model.chat(!remindAgent ? full_prompt : modifiedPrompt, {
       max_tokens,
       temperature: this.temperature,
     })
