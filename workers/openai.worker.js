@@ -33,7 +33,8 @@ const NEXT_PROMPT =
   '9 - Do not use commands to retrieve or analyze information you already have. Use your long term memory instead.\n' +
   '10 - Execute the "do_nothing" command ONLY if there is no other command to execute.\n' +
   '11 - Make sure to execute commands only with supported arguments.\n' +
-  '12 - ONLY RESPOND IN THE FOLLOWING FORMAT: (MAKE SURE THAT IT CAN BE DECODED WITH JAVASCRIPT JSON.parse())\n' +
+  '13 - If a command is not available, select an alternative command from the available options.\n' + // added extra directive 
+  '13 - ONLY RESPOND IN THE FOLLOWING FORMAT: (MAKE SURE THAT IT CAN BE DECODED WITH JAVASCRIPT JSON.parse())\n' +
   JSON.stringify(JSON._DEFAULT_RESPONSE_FORMAT) +
   '\n'
 
@@ -321,7 +322,7 @@ class Agent {
     if (this.constraints.length > 0) {
       prompt.push(this.constraintsPrompt())
     }
-    if (this.plan.length > 0) {
+    if (this.plan?.length > 0) {
       prompt.push(this.planPrompt())
     }
     if (this.progress.length > 0) {
@@ -506,7 +507,8 @@ class Agent {
     }
 
     if (!found) {
-      const resp = `Command "${toolId}" does not exist.`;
+      // Updated response
+      const resp = `The command "${toolId}" is not available. Please choose a different command.`;
       this.history.push({
         role: 'system',
         content: resp,
