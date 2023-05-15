@@ -8,13 +8,13 @@ const DEFAULT_AGENT_DESCRIPTION =
 
 const _DEFAULT_RESPONSE_FORMAT = {
   thoughts: {
-    text: "What do you want to say to the user?",
-    reasoning: "Why do you want to say this?",
-    progress: "- A detailed list\n - of everything you have done so far",
-    plan: "- short bulleted\n- list that conveys\n- long-term plan",
-    speak: "thoughts summary to say to user",
+    text: 'What do you want to say to the user?',
+    reasoning: 'Why do you want to say this?',
+    progress: '- A detailed list\n - of everything you have done so far',
+    plan: '- short bulleted\n- list that conveys\n- long-term plan',
+    speak: 'thoughts summary to say to user',
   },
-  command: {name: "next command in your plan", args: {arg_name: "value"}},
+  command: { name: 'next command in your plan', args: { arg_name: 'value' } },
 }
 const DEFAULT_RESPONSE_FORMAT = `You should only respond in JSON format as described below \nResponse Format: \n
 ${JSON.stringify(_DEFAULT_RESPONSE_FORMAT)}
@@ -80,25 +80,23 @@ class Agent {
     this.state = AgentStates.START
   }
 
-  _get_non_user_messages(n) {
+  _getNonUserMessages(n) {
     const msgs = this.history.filter((msg) => {
       return (
         msg.role !== 'user' &&
-        !(msg.role === 'system' && 'do_nothing' in msg.content)
+        !(msg.role === 'system' && msg.content.includes('do_nothing'))
       )
     })
     return msgs.slice(-n - 1, -1)
   }
 
   getFullPrompt(user_input = '') {
-    // debug messages
-    self.postMessage({ agentGetFullPrompt1: { user_input } })
     const header = { role: 'system', content: this.headerPrompt() }
     const dtime = {
       role: 'system',
       content: `The current time and date is ${new Date().toLocaleString()}`,
     }
-    const msgs = this._get_non_user_messages(10)
+    const msgs = this._getNonUserMessages(10)
     const relevant_memory = this.memory.get(msgs.toString(), 5)
     const user_prompt = user_input
       ? [{ role: 'user', content: user_input }]
@@ -122,16 +120,10 @@ class Agent {
     }
 
     const maxtokens = this.model.getTokenLimit() - 1000
-    // debug messages
-    self.postMessage({ agentGetFullPrompt: { maxtokens } })
-    // let ntokensTotal = 0
     let ntokens = 0
     while (true) {
       const msgs = _msgs()
       ntokens += this.model.countTokens(msgs)
-      // ntokensTotal += ntokens
-      // debug messages
-      self.postMessage({ agentGetFullPrompt2: { ntokens } })
       if (ntokens < maxtokens) {
         break
       } else {
@@ -144,10 +136,6 @@ class Agent {
         }
       }
     }
-    // debug messages
-    self.postMessage({
-      agentGetFullPrompt3: { full_prompt: _msgs(), token_count: ntokens },
-    })
 
     return { full_prompt: _msgs(), token_count: ntokens }
   }
@@ -200,23 +188,6 @@ class Agent {
       return `${this.next_prompt}\n\n${message || ''}`
     }
   }
-
-  // async generateResponse(prompt) {
-  //   return await this.model.chat({
-  //     model: this.model,
-  //     prompt: prompt,
-  //     temperature: this.temperature,
-  //     max_tokens: this.max_tokens
-  //   })
-  // }
-
-  // async handleUserMessage(message) {
-  //   this.history.push(message)
-  //   const full_prompt = this.getFullPrompt(message.content)
-  //   const response = await this.generateResponse(full_prompt)
-  //   this.history.push({ role: 'system', content: response })
-  //   return { role: 'system', content: response }
-  // }
 
   async chat(message = null, run_tool = false) {
     if (this.state === AgentStates.STOP) {
@@ -276,10 +247,9 @@ class Agent {
     })
 
     let parsedResp = resp.choices[0].message.content
-    
+
     try {
       parsedResp = await this.loadJson(parsedResp)
-      self.postMessage({ parsedResp })
       let plan = await parsedResp.thoughts.plan
 
       if (plan && Array.isArray(plan)) {
@@ -330,10 +300,11 @@ class Agent {
     this.history.push({ role: 'user', content: message })
     this.history.push({
       role: 'assistant',
-      content: typeof parsedResp === 'object' ? JSON.stringify(parsedResp) : await parsedResp,
+      content:
+        typeof parsedResp === 'object'
+          ? JSON.stringify(parsedResp)
+          : await parsedResp,
     })
-
-    self.postMessage({ parsedResp: await parsedResp, state: this })
 
     return await parsedResp
   }
@@ -397,105 +368,90 @@ class Agent {
 
   async loadJson(s, try_gpt = true) {
     try {
-      self.postMessage({ loadJson: s });
-    
-      if (s.includes("Result: {")) {
-        s = s.split("Result: ")[0];
+      if (s.includes('Result: {')) {
+        s = s.split('Result: ')[0]
       }
-      if (!s.includes("{") || !s.includes("}")) {
-        throw new Error("Invalid JSON format");
+      if (!s.includes('{') || !s.includes('}')) {
+        throw new Error('Invalid JSON format')
       }
-    
+
       try {
-        return JSON.parse(s);
+        return JSON.parse(s)
       } catch (error) {
-        self.postMessage({ error: error.message });
-    
-        s = s.substring(s.indexOf("{"), s.lastIndexOf("}") + 1);
-    
+        this.postError(error)
+
+        s = s.substring(s.indexOf('{'), s.lastIndexOf('}') + 1)
+
         try {
-          return JSON.parse(s);
+          return JSON.parse(s)
         } catch (error) {
-          self.postMessage({ error: error.message });
-    
+          this.postError(error)
+
           try {
-            s = s.replace(/\n/g, " ");
-            return s;
+            s = s.replace(/\n/g, ' ')
+            return s
           } catch (error) {
-            self.postMessage({ error: error.message });
-    
+            this.postError(error)
+
             try {
-              return `${s}}`;
+              return `${s}}`
             } catch (error) {
               // Retry with GPT extraction
-              self.postMessage({ error: error.message });
+              this.postError(error)
               if (try_gpt) {
-                s = await extractJsonWithGpt(s);
+                s = await extractJsonWithGpt(s)
                 try {
-                  return s;
+                  return s
                 } catch (error) {
-                  self.postMessage({ error: error.message });
-                  return loadJson(s, false);
+                  this.postError(error)
+                  return loadJson(s, false)
                 }
               }
-              throw new Error("Unable to parse JSON");
+              throw new Error('Unable to parse JSON')
             }
           }
         }
       }
     } catch (error) {
-      self.postMessage({ error: error.message });
-      throw error;
+      this.postError(error)
+      throw error
     }
   }
-  
-  
-  
+
   async extractJsonWithGpt(s) {
-    self.postMessage({extractJsonWithGpt: s})
+    self.postMessage({ extractJsonWithGpt: s })
 
     const func = `function convertToJson(response) {
       // Implement the logic to convert the given string to a JSON string
       // of the desired format
       // Ensure the result can be parsed by JSON.parse
       // Return the JSON string
-    }`;
-  
+    }`
+
     const desc = `Convert the given string to a JSON string of the form
   ${JSON.stringify(DEFAULT_RESPONSE_FORMAT_, null, 4)}
-  Ensure the result can be parsed by JSON.parse.`;
-  
-    const args = [s];
-  
+  Ensure the result can be parsed by JSON.parse.`
+
+    const args = [s]
+
     const msgs = [
       {
-        role: "system",
+        role: 'system',
         content: `You are now the following JavaScript function:\n\n${func}\n\nOnly respond with your 'return' value.`,
       },
-      { role: "user", content: args.join(", ") },
-    ];
+      { role: 'user', content: args.join(', ') },
+    ]
 
     const token_count = this.model.countTokens(message)
     const token_limit = await this.model.getTokenLimit()
     const max_tokens = Math.min(1000, Math.max(token_limit - token_count, 0))
-  
+
     return this.model.chat({
       messages: msgs,
       temperature: 0.0,
-      max_tokens
-    });
+      max_tokens,
+    })
   }
-  
-  
-  // try {
-  //   const json = loadJson(inputString);
-  //   console.log(json);
-  // } catch (error) {
-  //   console.error("Failed to load JSON.");
-  // }
-  
-
-  
 }
 
 class LocalMemory {
@@ -589,35 +545,25 @@ class OpenAIEmbeddingProvider {
 }
 
 class OpenAIModel {
-  constructor(model = 'text-davinci-002', apiKey = null) {
+  constructor(model = 'gpt-3.5-turbo', apiKey = null) {
     this.model = model
     this.apiKey = apiKey
   }
 
   async chat(messages, maxTokens = null, temperature = 0.8) {
-    // debug messages
-    self.postMessage({ modelChat: { messages, maxTokens, temperature } })
-    // const api_key = await this.getOpenAiKey()
     const { max_tokens } = maxTokens
     this.max_tokens = maxTokens
     this.temperature = temperature
 
     const num_retries = 3
-    self.postMessage({
-      'model.chat-return': {
-        model: this.model,
-        messages,
-        max_tokens,
-        temperature,
-      },
-    })
+
     for (let i = 0; i < num_retries; i++) {
       try {
         const apiKeyResponse = await fetch('/api/openai', {
           method: 'POST',
-        });
-        const { apiKey } = await apiKeyResponse.json();
-      
+        })
+        const { apiKey } = await apiKeyResponse.json()
+
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
@@ -630,13 +576,11 @@ class OpenAIModel {
             max_tokens,
             temperature,
           }),
-        });
-      
-        const data = await response.json();
-      
-        self.postMessage({ type: 'agentMessage', payload: data });
-        return data;
+        })
 
+        const data = await response.json()
+
+        return data
       } catch (error) {
         if (error.statusCode === 429) {
           console.warn('Rate limit exceeded. Retrying after 20 seconds.')
@@ -723,9 +667,35 @@ class OpenAIModel {
 
 function assert(condition, message) {
   if (!condition) {
-    self.postMessage({ error: message })
+    postError({ name: 'Assertion error', message })
     throw new Error(JSON.stringify(message) || 'Assertion failed')
   }
+}
+
+function postError(error) {
+  self.postMessage({
+    type: 'error',
+    payload: {
+      fromId: self.id,
+      toId: 'all',
+      content: {
+        name: error.name,
+        message: error.message,
+        ...(!!error.stack && { stack: error.stack }),
+      },
+    },
+  })
+}
+
+function postState(agent) {
+  self.postMessage({
+    type: 'state',
+    payload: {
+      fromId: self.id,
+      toId: 'all',
+      content: agent,
+    },
+  })
 }
 
 const apiUrl = 'https://api.openai.com/v1/chat/completions'
@@ -745,45 +715,55 @@ const agent = new Agent({
 })
 
 const initWorker = async () => {
-  // token overload test
-  // const testData = await fetch('https://baconipsum.com/api/?type=all-meat&paras=300&start-with-lorem=1&format=html', {
-  //   method: "GET",
-  // })
-  // .then((response) => response.text())
-
-  // agent.chat(JSON.stringify(testData))
-
   self.onmessage = async (event) => {
-    if (event.data.type === 'init') {
-      self.id = event.data.payload.id
-    } else if (event.data.type === 'chat') {
-      await agent.chat(event.data.payload)
-      // self.postMessage({
-      //   type: 'state',
-      //   payload: {
-      //     fromId: self.id,
-      //     toId: 'all',
-      //     content: agent,
-      //   },
-      // })
-    } else if (event.data.type === 'state') {
+    const postMessage = (type, payload) => {
       self.postMessage({
-        type: 'state',
+        type,
         payload: {
           fromId: self.id,
           toId: 'all',
-          content: agent,
+          content: payload,
         },
       })
-    } else if (event.data.type === 'hello') {
-      self.postMessage({
-        type: 'message',
-        payload: {
-          fromId: self.id,
-          toId: 'all',
-          content: 'Hello!',
-        },
-      })
+    }
+
+    const { type, payload } = event.data
+
+    switch (type) {
+      case 'init':
+        self.id = payload.id
+        postState(agent)
+        break
+
+      case 'chat':
+        startChat()
+        break
+
+      case 'runTool':
+        postMessage('message', 'Running staged tool...')
+        const response = await agent.chat({run_tool: true})
+        postState(agent)
+        postMessage('response', response)
+        break
+
+      case 'state':
+        postState(agent)
+        break
+
+      case 'hello':
+        postMessage('message', 'Hello!')
+        break
+
+      default:
+        break
+    }
+
+    async function startChat() {
+      postMessage('message', 'Initiating chat...')
+      const response = await agent.chat(payload)
+      postState(agent)
+      postMessage('response', response)
+      return response
     }
   }
 }

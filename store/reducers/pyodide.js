@@ -5,7 +5,7 @@ const initialState = {
 }
 
 export default function (state = initialState, action) {
-  console.log({ state, action })
+  // console.log({ state, action })
 
   switch (action.type) {
     case SHOW_PYODIDE_COMMAND_BOX:

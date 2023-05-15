@@ -1,4 +1,9 @@
-import { ADD_AGENT, ADD_AGENT_RESPONSE, REMOVE_AGENT } from '../types'
+import {
+  ADD_AGENT,
+  ADD_AGENT_RESPONSE,
+  REMOVE_AGENT,
+  UPDATE_AGENT_STATE,
+} from '../types'
 
 const initialState = {
   workerRegistry: [],
@@ -16,6 +21,8 @@ export default function (state = initialState, action) {
       }
 
     case ADD_AGENT_RESPONSE:
+      console.log({ state, action })
+
       return {
         ...state,
         agentResponses: [...state.agentResponses, action.payload],
@@ -29,6 +36,22 @@ export default function (state = initialState, action) {
       return {
         ...state,
         workerRegistry: filteredAgents,
+      }
+
+    case UPDATE_AGENT_STATE:
+      const updatedRegistry = state.workerRegistry.map((agent) => {
+        if (agent.id === action.payload.id) {
+          return {
+            ...agent,
+            state: action.payload.state,
+          }
+        }
+        return agent
+      })
+
+      return {
+        ...state,
+        workerRegistry: updatedRegistry,
       }
 
     default:

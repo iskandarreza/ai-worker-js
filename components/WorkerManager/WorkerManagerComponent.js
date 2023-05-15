@@ -15,13 +15,13 @@ export function WorkerManagerComponent() {
       <CreateWorkerComponent />
 
       {!!workerRegistry.length > 0 ? (
-        <WorkerRegistryList {...{workerRegistry}} />
+        <WorkerRegistryList {...{ workerRegistry }} />
       ) : (
         ''
       )}
 
       {!!agentResponses.length > 0 ? (
-        <AgentResponsesList {...{agentResponses}} />
+        <AgentResponsesList {...{ agentResponses }} />
       ) : (
         ''
       )}
@@ -29,35 +29,38 @@ export function WorkerManagerComponent() {
   )
 }
 
-function AgentResponsesList({agentResponses}) {
-  return <Box>
-    <h2>Agent Responses</h2>
-    {agentResponses?.map((response, index) => (
-      <ListItem key={`${index}`}>
-        {JSON.stringify(response, null, 4)}
-      </ListItem>
-    ))}
-  </Box>
+function AgentResponsesList({ agentResponses }) {
+  return (
+    <Box>
+      <h2>Agent Responses</h2>
+      {agentResponses?.map((response, index) => (
+        <ListItem key={`${index}`}>
+          {JSON.stringify(response, null, 4)}
+        </ListItem>
+      ))}
+    </Box>
+  )
 }
 
-function WorkerRegistryList({workerRegistry}) {
-  return <Box>
-    <h2>Agent Registry</h2>
-    {workerRegistry?.map((wrapper, _index) => (
-      <ListItem key={`${wrapper.type}-${wrapper.id}`}>
-        <Paper sx={{ display: 'flex' }} elevation={2}>
-          <WorkerTitleIDComponent {...{ wrapper }} />
+function WorkerRegistryList({ workerRegistry }) {
+  return (
+    <Box>
+      <h2>Agent Registry</h2>
+      {workerRegistry?.map((wrapper, _index) => (
+        <ListItem key={`${wrapper.type}-${wrapper.id}`}>
+          <Paper sx={{ display: 'flex' }} elevation={2}>
+            <WorkerTitleIDComponent {...{ wrapper }} />
 
-          {wrapper.type === 'openai' && (
-            <OpenAIWorkerComponent {...{ wrapper }} />
-          )}
+            {wrapper.type === 'openai' && (
+              <OpenAIWorkerComponent {...{ wrapper }} />
+            )}
 
-          {wrapper.type === 'pyodide' && (
-            <PyodideWorkerComponent {...{ wrapper }} />
-          )}
-        </Paper>
-      </ListItem>
-    ))}
-  </Box>
+            {wrapper.type === 'pyodide' && (
+              <PyodideWorkerComponent {...{ wrapper }} />
+            )}
+          </Paper>
+        </ListItem>
+      ))}
+    </Box>
+  )
 }
-

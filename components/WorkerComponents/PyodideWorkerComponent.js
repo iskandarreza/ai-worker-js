@@ -2,7 +2,6 @@ import { Box, ListItemButton } from '@mui/material'
 import { RemoveWorkerComponent } from '../WorkerManager/RemoveWorkerComponent'
 
 export function PyodideWorkerComponent({ wrapper }) {
-
   return (
     <>
       <Box sx={{ display: 'flex', flexDirection: 'column' }}>

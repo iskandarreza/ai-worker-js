@@ -1,7 +1,6 @@
 import { ListItemButton } from '@mui/material'
 import { useDispatch } from 'react-redux'
 import { REMOVE_AGENT } from '../../store/types'
-import { listenForResponse } from './actions/listenForResponse'
 
 export const terminateWorker = (worker) => {
   if (worker !== null) {
@@ -9,12 +8,13 @@ export const terminateWorker = (worker) => {
   }
 }
 
-export function RemoveWorkerComponent({ wrapper }) {
+export function RemoveWorkerComponent({ wrapper, eventListener }) {
   const dispatch = useDispatch()
   return (
     <ListItemButton
       onClick={() => {
-        wrapper.worker.removeEventListener('message', listenForResponse)
+        !!eventListener &&
+          wrapper.worker.removeEventListener('message', eventListener)
         dispatch({ type: REMOVE_AGENT, payload: wrapper.id })
         terminateWorker(wrapper.worker)
       }}

@@ -6,9 +6,10 @@ export function AppStateComponent() {
   const state = useSelector((state) => state)
   const { uiStates, workerStates } = state
 
-  useEffect(() => {
-    console.log(workerStates.workerRegistry)
-  }, [workerStates])
+  // useEffect(() => {
+  //   console.log(workerStates.workerRegistry)
+  // }, [workerStates])
+
   return (
     <Box>
       <Paper>
