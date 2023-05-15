@@ -79,6 +79,7 @@ class Agent {
     this.plan = []
     this.constraints = []
     this.state = AgentStates.START
+    this.tools = []
   }
 
   _getNonUserMessages(n) {
