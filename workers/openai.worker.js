@@ -1,6 +1,6 @@
 // Credits to Fariz Rahman for https://github.com/farizrahman4u/loopgpt
 // importScripts('/workers/bundles/openai-bundle.js')
-// TODO: above import not working, need alternative, using simple regex for now to accomplish token counting 
+// TODO: above import not working, need alternative, using simple regex for now to accomplish token counting
 
 const DEFAULT_AGENT_NAME = 'AI-Worker'
 const DEFAULT_AGENT_DESCRIPTION =
@@ -492,6 +492,7 @@ class OpenAIModel {
     // debug messages
     self.postMessage({ modelChat: { messages, maxTokens, temperature } })
     const api_key = await this.getOpenAiKey()
+    const { max_tokens } = maxTokens
 
     const num_retries = 3
     self.postMessage({
@@ -510,7 +511,6 @@ class OpenAIModel {
           .then((res) => res.json())
           .then((data) => {
             const { apiKey } = data
-            const { max_tokens, temperature } = maxTokens
             // Send a request to the OpenAI API
             fetch(apiUrl, {
               method: 'POST',
@@ -528,20 +528,13 @@ class OpenAIModel {
               .then((response) => response.json())
               .then((data) => {
                 // Return the response to the main thread
-                self.postMessage(data)
+                self.postMessage({ type: 'agentMessage', payload: data })
               })
               .catch((error) => {
                 console.error(error)
               })
           })
 
-        // return self.postMessage(JSON.stringify({
-        //   engine: this.model,
-        //   prompt: messages,
-        //   maxTokens,
-        //   temperature,
-        //   apiKey: api_key
-        // }))
       } catch (error) {
         if (error.statusCode === 429) {
           console.warn('Rate limit exceeded. Retrying after 20 seconds.')
@@ -637,10 +630,7 @@ const apiUrl = 'https://api.openai.com/v1/chat/completions'
 
 // Create a new instance of the Agent class
 const agent = new Agent({
-  // name: 'My Agent',
-  // description: 'My Agent Description',
   model: new OpenAIModel('gpt-3.5-turbo'),
-  // model: 'gpt-3.5-turbo',
   embedding_provider: new OpenAIEmbeddingProvider(),
   temperature: 0.8,
   memory: new LocalMemory(),
@@ -652,20 +642,22 @@ const agent = new Agent({
   state: AgentStates.START,
 })
 
-const test = async () => {
-  // debug messages
-  self.postMessage({ agent })
-
-  // const testData = await fetch('https://baconipsum.com/api/?type=all-meat&paras=30&start-with-lorem=1&format=html', {
+const initWorker = async () => {
+  // token overload test
+  // const testData = await fetch('https://baconipsum.com/api/?type=all-meat&paras=300&start-with-lorem=1&format=html', {
   //   method: "GET",
   // })
   // .then((response) => response.text())
 
   // agent.chat(JSON.stringify(testData))
 
-  agent.chat(
-    'Hey, can you show an example of how to use webworkers to do parallel tasks?'
-  )
+  self.onmessage = (event) => {
+    if (event.data.type === 'chat') {
+      agent.chat(event.data.payload)
+    } else if (event.data.type === 'state') {
+      self.postMessage({ state: agent })
+    }
+  }
 }
 
-test()
+initWorker()
