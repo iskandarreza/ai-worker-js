@@ -48,7 +48,9 @@ function WorkerRegistryList({ workerRegistry }) {
       <h2>Agent Registry</h2>
       {workerRegistry?.map((wrapper, _index) => (
         <ListItem key={`${wrapper.type}-${wrapper.id}`}>
-          <Paper sx={{ display: 'flex' }} elevation={2}>
+          <Paper
+            sx={{ display: 'flex' }}
+            elevation={2}>
             <WorkerTitleIDComponent {...{ wrapper }} />
 
             {wrapper.type === 'openai' && (

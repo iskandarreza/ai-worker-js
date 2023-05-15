@@ -1,19 +1,33 @@
-import { Container } from '@mui/material'
+import { Container, Grid } from '@mui/material'
 import { AppStateComponent } from './AppStateComponent'
 import { WorkerManagerComponent } from './WorkerManager/WorkerManagerComponent'
 
 export function Home() {
   return (
-    <Container
-      sx={{
-        display: 'grid',
-        justifyContent: 'space-between',
-        gridTemplateColumns: '2fr 2fr',
-      }}
+    <Grid 
+      container height={'95vh'}
     >
-      <WorkerManagerComponent />
+      <Grid item xs={12}>
+        <h4>Hello!</h4>
+      </Grid>
+      <Grid
+        container item xs={12}
+        sx={{ height: '80vh', overflowY: 'scroll' }}
+      >
 
-      <AppStateComponent />
-    </Container>
+        <Grid item xs={6}>
+          <WorkerManagerComponent />
+
+        </Grid>
+
+        <Grid item xs={6}>
+          <AppStateComponent />
+
+        </Grid>
+
+
+      </Grid>
+
+    </Grid>
   )
 }
