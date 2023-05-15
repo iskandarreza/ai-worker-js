@@ -191,19 +191,21 @@ class Agent {
     }
   }
 
-  async chat(message = null, run_tool = false) {
+  async chat({message = null, run_tool = false}) {
     if (this.state === AgentStates.STOP) {
       throw new Error(
         'This agent has completed its tasks. It will not accept any more messages. You can do `agent.clear_state()` to start over with the same goals.'
       )
     }
 
+    self.postMessage({message, run_tool})
+
     message = this.getFullMessage(message)
 
     if (this.staging_tool) {
       const tool = this.staging_tool
       if (run_tool) {
-        const output = await this.run_staging_tool()
+        const output = await this.runStagingTool()
         this.tool_response = output
 
         if (tool.name === 'task_complete') {
@@ -823,10 +825,7 @@ const initWorker = async () => {
         break
 
       case 'runTool':
-        postMessage('message', 'Running staged tool...')
-        const response = await agent.chat({run_tool: true})
-        postState(agent)
-        postMessage('response', response)
+        await runTool()
         break
 
       case 'state':
@@ -839,6 +838,13 @@ const initWorker = async () => {
 
       default:
         break
+    }
+
+    async function runTool() {
+      postMessage('message', 'Running staged tool...')
+      const response = await agent.chat({ run_tool: true })
+      postState(agent)
+      postMessage('response', response)
     }
 
     async function startChat() {
