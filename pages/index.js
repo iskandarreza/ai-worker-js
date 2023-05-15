@@ -1,5 +1,5 @@
 import { Container, ThemeProvider, createTheme } from '@mui/material'
-import Home from '../components/Home'
+import { Home } from '../components/Home'
 
 const theme = createTheme({
   breakpoints: {

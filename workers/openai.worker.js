@@ -534,7 +534,6 @@ class OpenAIModel {
                 console.error(error)
               })
           })
-
       } catch (error) {
         if (error.statusCode === 429) {
           console.warn('Rate limit exceeded. Retrying after 20 seconds.')
@@ -652,10 +651,28 @@ const initWorker = async () => {
   // agent.chat(JSON.stringify(testData))
 
   self.onmessage = (event) => {
-    if (event.data.type === 'chat') {
+    if (event.data.type === 'init') {
+      self.id = event.data.payload.id
+    } else if (event.data.type === 'chat') {
       agent.chat(event.data.payload)
     } else if (event.data.type === 'state') {
-      self.postMessage({ state: agent })
+      self.postMessage({
+        type: 'state',
+        payload: {
+          fromId: self.id,
+          toId: 'all',
+          content: agent,
+        },
+      })
+    } else if (event.data.type === 'hello') {
+      self.postMessage({
+        type: 'message',
+        payload: {
+          fromId: self.id,
+          toId: 'all',
+          content: 'Hello!',
+        },
+      })
     }
   }
 }

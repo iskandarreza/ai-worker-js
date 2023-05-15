@@ -22,13 +22,15 @@ export default function (state = initialState, action) {
       }
 
     case REMOVE_AGENT:
-      const filteredAgents = state.workerRegistry.filter(agent => agent.id !== action.payload)
+      const filteredAgents = state.workerRegistry.filter(
+        (agent) => agent.id !== action.payload
+      )
 
       return {
         ...state,
         workerRegistry: filteredAgents,
       }
-  
+
     default:
       return state
   }
