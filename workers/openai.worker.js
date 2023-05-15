@@ -35,7 +35,7 @@ const NEXT_PROMPT =
   '11 - Make sure to execute commands only with supported arguments.\n' +
   '13 - If a command is not available, select an alternative command from the available options.\n' + // added extra directive 
   '13 - ONLY RESPOND IN THE FOLLOWING FORMAT: (MAKE SURE THAT IT CAN BE DECODED WITH JAVASCRIPT JSON.parse())\n' +
-  JSON.stringify(JSON._DEFAULT_RESPONSE_FORMAT) +
+  JSON.stringify(_DEFAULT_RESPONSE_FORMAT) +
   '\n'
 
 const INIT_PROMPT =
