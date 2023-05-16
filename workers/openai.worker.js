@@ -33,7 +33,7 @@ const NEXT_PROMPT =
   '9 - Do not use commands to retrieve or analyze information you already have. Use your long term memory instead.\n' +
   '10 - Execute the "do_nothing" command ONLY if there is no other command to execute.\n' +
   '11 - Make sure to execute commands only with supported arguments.\n' +
-  '12 - If a command is not available, select an alternative command from the available options.\n' + // added extra directive 
+  '12 - If a command is not available, select an alternative command from the available options.\n' + // added extra directive
   '13 - ONLY RESPOND IN THE FOLLOWING FORMAT: (MAKE SURE THAT IT CAN BE DECODED WITH JAVASCRIPT JSON.parse())\n' +
   JSON.stringify(_DEFAULT_RESPONSE_FORMAT) +
   '\n'
@@ -191,14 +191,14 @@ class Agent {
     }
   }
 
-  async chat({message = null, run_tool = false}) {
+  async chat({ message = null, run_tool = false }) {
     if (this.state === AgentStates.STOP) {
       throw new Error(
         'This agent has completed its tasks. It will not accept any more messages. You can do `agent.clear_state()` to start over with the same goals.'
       )
     }
 
-    self.postMessage({message, run_tool})
+    self.postMessage({ message, run_tool })
 
     message = this.getFullMessage(message)
 
@@ -248,51 +248,56 @@ class Agent {
     // Check if tool not available, and if agent is trying to use the unavailable tool again, assert as user
     let remindAgent = false
     let modifiedPrompt = [...full_prompt]
-    if (typeof this.tool_response === 'string' && this.tool_response.includes('is not available. Please choose a different command.')) {
-
+    if (
+      typeof this.tool_response === 'string' &&
+      this.tool_response.includes(
+        'is not available. Please choose a different command.'
+      )
+    ) {
       let lastResponse
       for (let i = modifiedPrompt.length - 1; i >= 0; i--) {
         if (modifiedPrompt[i].role === 'assistant') {
-          lastResponse = JSON.parse(modifiedPrompt[i].content);
-          break;
+          lastResponse = JSON.parse(modifiedPrompt[i].content)
+          break
         }
       }
 
-      let toolId = lastResponse?.command?.name || 'unknown tool';
+      let toolId = lastResponse?.command?.name || 'unknown tool'
 
-      self.postMessage({toolId, state: this})
+      self.postMessage({ toolId, state: this })
 
       if (toolId === this.staging_tool?.name) {
-        
         const remindAsUser = {
           role: 'user',
           content: `Reminder: The tool "${toolId}" is not available. Please choose a different command.`,
-        };
+        }
 
         // Find the index of the last user message
-        let lastUserIndex = -1;
+        let lastUserIndex = -1
         for (let i = modifiedPrompt.length - 1; i >= 0; i--) {
           if (modifiedPrompt[i].role === 'user') {
-            lastUserIndex = i;
-            break;
+            lastUserIndex = i
+            break
           }
         }
 
         if (lastUserIndex !== -1) {
           // Replace the last user message with the modified message
-          modifiedPrompt[lastUserIndex] = remindAsUser;
+          modifiedPrompt[lastUserIndex] = remindAsUser
           remindAgent = true
         }
 
-        self.postMessage({modifiedPrompt, remindAgent})
+        self.postMessage({ modifiedPrompt, remindAgent })
       }
-
     }
 
-    const resp = await this.model.chat(!remindAgent ? full_prompt : modifiedPrompt, {
-      max_tokens,
-      temperature: this.temperature,
-    })
+    const resp = await this.model.chat(
+      !remindAgent ? full_prompt : modifiedPrompt,
+      {
+        max_tokens,
+        temperature: this.temperature,
+      }
+    )
 
     let parsedResp = resp.choices[0].message.content
 
@@ -503,84 +508,91 @@ class Agent {
 
   runStagingTool() {
     if (!this.staging_tool.hasOwnProperty('name')) {
-      const resp = 'Command name not provided. Make sure to follow the specified response format.';
+      const resp =
+        'Command name not provided. Make sure to follow the specified response format.'
       this.history.push({
         role: 'system',
         content: resp,
-      });
-      return resp;
+      })
+      return resp
     }
-  
-    const toolId = this.staging_tool.name;
-    const args = this.staging_tool.args || {};
-  
+
+    const toolId = this.staging_tool.name
+    const args = this.staging_tool.args || {}
+
     if (toolId === 'task_complete') {
-      const resp = { success: true };
+      const resp = { success: true }
       this.history.push({
         role: 'system',
-        content: `Command "${toolId}" with args ${JSON.stringify(args)} returned:\n${JSON.stringify(resp)}`,
-      });
-      return resp;
+        content: `Command "${toolId}" with args ${JSON.stringify(
+          args
+        )} returned:\n${JSON.stringify(resp)}`,
+      })
+      return resp
     }
-  
+
     if (toolId === 'do_nothing') {
-      const resp = { response: 'Nothing Done.' };
+      const resp = { response: 'Nothing Done.' }
       this.history.push({
         role: 'system',
-        content: `Command "${toolId}" with args ${JSON.stringify(args)} returned:\n${JSON.stringify(resp)}`,
-      });
-      return resp;
+        content: `Command "${toolId}" with args ${JSON.stringify(
+          args
+        )} returned:\n${JSON.stringify(resp)}`,
+      })
+      return resp
     }
-  
+
     if (!this.staging_tool.hasOwnProperty('args')) {
-      const resp = 'Command args not provided. Make sure to follow the specified response format.';
+      const resp =
+        'Command args not provided. Make sure to follow the specified response format.'
       this.history.push({
         role: 'system',
         content: resp,
-      });
-      return resp;
+      })
+      return resp
     }
-  
-    const kwargs = this.staging_tool.args;
-    let found = false;
+
+    const kwargs = this.staging_tool.args
+    let found = false
 
     if (this.tools && typeof this.tools === 'object') {
       for (const [k, tool] of Object.entries(this.tools)) {
         if (k === toolId) {
-          found = true;
-          break;
+          found = true
+          break
         }
       }
     }
 
     if (!found) {
       // Updated response
-      const resp = `The command "${toolId}" is not available. Please choose a different command.`;
+      const resp = `The command "${toolId}" is not available. Please choose a different command.`
       this.history.push({
         role: 'system',
         content: resp,
-      });
-      return resp;
+      })
+      return resp
     }
-  
+
     try {
-      const tool = this.tools[toolId];
-      const resp = tool.run(kwargs);
+      const tool = this.tools[toolId]
+      const resp = tool.run(kwargs)
       this.history.push({
         role: 'system',
-        content: `Command "${toolId}" with args ${JSON.stringify(args)} returned:\n${JSON.stringify(resp)}`,
-      });
-      return resp;
+        content: `Command "${toolId}" with args ${JSON.stringify(
+          args
+        )} returned:\n${JSON.stringify(resp)}`,
+      })
+      return resp
     } catch (e) {
-      const resp = `Command "${toolId}" failed with error: ${e}`;
+      const resp = `Command "${toolId}" failed with error: ${e}`
       this.history.push({
         role: 'system',
         content: resp,
-      });
-      return resp;
+      })
+      return resp
     }
   }
-  
 }
 
 class LocalMemory {
@@ -893,7 +905,7 @@ const initWorker = async () => {
 
     async function startChat() {
       postMessage('message', 'Initiating chat...')
-      const response = await agent.chat({message: payload})
+      const response = await agent.chat({ message: payload })
       postState(agent)
       postMessage('response', response)
       return response

@@ -2,7 +2,12 @@ import { Box, ListItemButton } from '@mui/material'
 import { useDispatch, useSelector } from 'react-redux'
 import { useEffect } from 'react'
 import { RemoveWorkerComponent } from '../WorkerManager/RemoveWorkerComponent'
-import { ADD_AGENT_RESPONSE, UPDATE_AGENT_STATE } from '../../store/types'
+import {
+  ADD_AGENT_RESPONSE,
+  SHOW_AGENT_CONFIG_FORM,
+  UPDATE_AGENT_STATE,
+} from '../../store/types'
+import { ConfigureWorkerDialog } from '../WorkerManager/ConfigureWorkerDialog'
 
 export function listenForResponse(dispatch) {
   return (event) => {
@@ -41,7 +46,14 @@ export function OpenAIWorkerComponent({ wrapper }) {
   const workerState = useSelector((state) =>
     state.workerStates.workerRegistry.find((worker) => worker.id === wrapper.id)
   )
+  const workerConfigState = useSelector(
+    (state) => state.uiStates.workerConfig
+  ).find((config) => config.id === wrapper.id)
+  const dialogIsOpen = useSelector(
+    (state) => state.uiStates.isConfiguringWorker
+  )
   const dispatch = useDispatch()
+
   useEffect(() => {
     wrapper.worker.addEventListener('message', listenForResponse(dispatch))
 
@@ -51,56 +63,78 @@ export function OpenAIWorkerComponent({ wrapper }) {
   }, [])
 
   useEffect(() => {
-    console.log('agent state', workerState.state)
-  }, [workerState])
+    console.log({ agentState: workerState, configState: workerConfigState })
+  }, [workerState, workerConfigState])
 
   return (
     <>
       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
         <ListItemButton
           onClick={() => {
-            wrapper.worker.postMessage({
-              type: 'hello',
-            })
+            dispatch({ type: SHOW_AGENT_CONFIG_FORM })
           }}
         >
-          Say hello
+          Configure
         </ListItemButton>
 
-        <ListItemButton
-          onClick={() => {
-            wrapper.worker.postMessage({
-              type: 'chat',
-              payload: 'What can a cluster of autonomous AI agents do?',
-            })
-          }}
-        >
-          Start chat
-        </ListItemButton>
+        {workerConfigState?.goals.length !== 0 ? (
+          <>
+            <ListItemButton
+              onClick={() => {
+                wrapper.worker.postMessage({
+                  type: 'config',
+                  payload: workerConfigState
+                })
+                
+                wrapper.worker.postMessage({
+                  type: 'chat',
+                  payload: null,
+                })
+              }}
+            >
+              Start chat
+            </ListItemButton>
 
-        {workerState.state?.state === 'TOOL_STAGED' ?
-          <ListItemButton
-            onClick={() => {
-              wrapper.worker.postMessage({
-                type: 'runTool',
-              })
-            }}
-          >
-            Run tool: {`${JSON.stringify(workerState.state.staging_tool)}`}
-          </ListItemButton> : ''
-        }
+            {workerState.state?.state === 'TOOL_STAGED' ? (
+              <ListItemButton
+                onClick={() => {
+                  wrapper.worker.postMessage({
+                    type: 'runTool',
+                  })
+                }}
+              >
+                Run tool: {`${JSON.stringify(workerState.state.staging_tool)}`}
+              </ListItemButton>
+            ) : (
+              ''
+            )}
+          </>
+        ) : (
+          ''
+        )}
 
         <ListItemButton
           onClick={() => {
             wrapper.worker.postMessage({ type: 'state' })
           }}
         >
-          Agent State: {`${workerState.state?.state}`}
+          Agent State:{' '}
+          {`${
+            workerState.state?.goals.length === 0
+              ? 'CONFIG'
+              : workerState.state?.state
+          }`}
         </ListItemButton>
         <RemoveWorkerComponent
           {...{ wrapper, eventListener: listenForResponse }}
         />
       </Box>
+
+      <ConfigureWorkerDialog
+        keepMounted
+        open={dialogIsOpen}
+        workerId={workerState.id}
+      />
     </>
   )
 }
