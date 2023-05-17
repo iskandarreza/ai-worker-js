@@ -82,11 +82,6 @@ export function LoopGPTWorkerComponent({ wrapper }) {
             <ListItemButton
               onClick={() => {
                 wrapper.worker.postMessage({
-                  type: 'config',
-                  payload: workerConfigState,
-                })
-
-                wrapper.worker.postMessage({
                   type: 'chat',
                   payload: null,
                 })

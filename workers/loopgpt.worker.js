@@ -23,29 +23,20 @@ function postError(error) {
 }
 
 function postState(agent) {
+  const agentConfig = {...agent}
+  agentConfig.model.apiKey = null
   self.postMessage({
     type: 'state',
     payload: {
       fromId: self.id,
       toId: 'all',
-      content: agent,
+      content: agentConfig,
     },
   })
 }
 
 const initWorker = async () => {
-  // Create a new instance of the Agent class
-  const agent = new Agent({
-    embedding_provider: new OpenAIEmbeddingProvider(),
-    temperature: 0.8,
-    memory: new LocalMemory(),
-    history: [],
-    goals: [],
-    progress: [],
-    plan: [],
-    constraints: [],
-    state: AgentStates.START,
-  })
+  let agent
 
   self.onmessage = async (event) => {
     const postMessage = (type, payload) => {
@@ -64,7 +55,15 @@ const initWorker = async () => {
     switch (type) {
       case 'init':
         self.id = payload.id
-        agent.model = await getModel()
+        agent = await initAgent()
+        postState(agent)
+        break
+
+      case 'config':
+        agent.name = payload.name
+        agent.description = payload.description
+        agent.goals = payload.goals
+        agent.constraints = payload.constraints
         postState(agent)
         break
 
@@ -103,7 +102,7 @@ const initWorker = async () => {
       return response
     }
 
-    async function getModel() {
+    async function initAgent() {
       const apiKeyResponse = await fetch('/api/openai', {
         method: 'POST',
       })
@@ -112,9 +111,21 @@ const initWorker = async () => {
 
       const apiUrl = 'https://api.openai.com/v1/chat/completions'
 
-      const model = new OpenAIModel('gpt-3.5-turbo', apiKey, apiUrl)
+      // Create a new instance of the Agent class
+      const agent = new Agent({
+        model: new OpenAIModel('gpt-3.5-turbo', apiKey, apiUrl),
+        embedding_provider: new OpenAIEmbeddingProvider(),
+        temperature: 0.8,
+        memory: new LocalMemory(),
+        history: [],
+        goals: [],
+        progress: [],
+        plan: [],
+        constraints: [],
+        state: AgentStates.START,
+      })
 
-      return model
+      return agent
     }
   }
 }

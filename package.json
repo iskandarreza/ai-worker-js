@@ -37,9 +37,9 @@
     "loopgpt-js": "^0.0.1384",
     "prettier": "^2.8.8",
     "pyodide": "^0.23.2",
+    "uuid": "^9.0.0",
     "webpack": "^5.82.1",
     "webpack-cli": "^5.1.1",
-    "worker-loader": "^3.0.8",
-    "uuid": "^9.0.0"
+    "worker-loader": "^3.0.8"
   }
 }

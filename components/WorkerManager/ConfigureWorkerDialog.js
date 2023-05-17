@@ -10,6 +10,10 @@ import { useEffect, useState } from 'react'
 
 export function ConfigureWorkerDialog({ workerId }) {
   const state = useSelector((state) => state)
+  const wrapper = state.workerStates.workerRegistry.find((wrapper) => wrapper.id === workerId)
+  const workerConfigState = useSelector(
+    (state) => state.uiStates.workerConfig
+  ).find((config) => config.id === workerId)
   const { uiStates } = state
   const isOpen = uiStates.isConfiguringWorker
   const dispatch = useDispatch()
@@ -29,6 +33,11 @@ export function ConfigureWorkerDialog({ workerId }) {
       payload: { id: workerId, name, description, goals, constraints },
     })
     dispatch({ type: HIDE_AGENT_CONFIG_FORM })
+    wrapper.worker.postMessage({
+      type: 'config',
+      payload: { name, description, goals, constraints },
+    })
+
   }
 
   useEffect(() => {
