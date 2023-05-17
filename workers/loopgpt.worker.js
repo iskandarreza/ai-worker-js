@@ -23,7 +23,7 @@ function postError(error) {
 }
 
 function postState(agent) {
-  const agentConfig = {...agent}
+  const agentConfig = { ...agent }
   agentConfig.model.apiKey = null
   self.postMessage({
     type: 'state',
