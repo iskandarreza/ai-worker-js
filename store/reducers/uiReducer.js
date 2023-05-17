@@ -1,6 +1,7 @@
 import {
   CREATE_WORKER_CONFIG,
   HIDE_AGENT_CONFIG_FORM,
+  REMOVE_WORKER_CONFIG,
   SHOW_AGENT_CONFIG_FORM,
 } from '../types'
 
@@ -51,6 +52,15 @@ export default function (state = initialState, action) {
           ...state,
           workerConfig: [...state.workerConfig, updatedConfig],
         }
+      }
+
+    case REMOVE_WORKER_CONFIG:
+      const filteredConfigs = state.workerConfig.filter(
+        (config) => config.id !== action.payload
+      )
+      return {
+        ...state,
+        workerConfig: filteredConfigs,
       }
 
     default:

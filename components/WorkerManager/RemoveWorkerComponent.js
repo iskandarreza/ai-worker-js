@@ -1,6 +1,6 @@
 import { ListItemButton } from '@mui/material'
 import { useDispatch } from 'react-redux'
-import { REMOVE_AGENT } from '../../store/types'
+import { REMOVE_AGENT, REMOVE_WORKER_CONFIG } from '../../store/types'
 
 export const terminateWorker = (worker) => {
   if (worker !== null) {
@@ -16,6 +16,7 @@ export function RemoveWorkerComponent({ wrapper, eventListener }) {
         !!eventListener &&
           wrapper.worker.removeEventListener('message', eventListener)
         dispatch({ type: REMOVE_AGENT, payload: wrapper.id })
+        dispatch({ type: REMOVE_WORKER_CONFIG, payload: wrapper.id })
         terminateWorker(wrapper.worker)
       }}
     >
