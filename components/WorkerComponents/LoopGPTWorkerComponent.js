@@ -60,11 +60,7 @@ export function LoopGPTWorkerComponent({ wrapper }) {
     return () => {
       wrapper.worker.removeEventListener('message', listenForResponse)
     }
-  }, [])
-
-  useEffect(() => {
-    console.log({ agentState: workerState, configState: workerConfigState })
-  }, [workerState, workerConfigState])
+  }, [dispatch, wrapper.worker])
 
   return (
     <>

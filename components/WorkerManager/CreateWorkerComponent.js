@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux'
 import { ADD_AGENT } from '../../store/types'
 import { v4 as uuidv4 } from 'uuid'
 
-export class WorkerWrapper {
+class WorkerWrapper {
   constructor(type) {
     this.type = type
     this.id = uuidv4()
@@ -18,7 +18,6 @@ export class WorkerWrapper {
 
 function createWorker(type) {
   const wrapper = new WorkerWrapper(type)
-  console.log(wrapper.worker)
   wrapper.worker.addEventListener('message', (ev) => {
     console.log(ev.data)
   })

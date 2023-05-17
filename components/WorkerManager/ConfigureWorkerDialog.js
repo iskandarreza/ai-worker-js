@@ -10,11 +10,11 @@ import { useEffect, useState } from 'react'
 
 export function ConfigureWorkerDialog({ workerId }) {
   const state = useSelector((state) => state)
-  const wrapper = state.workerStates.workerRegistry.find((wrapper) => wrapper.id === workerId)
-  const workerConfigState = useSelector(
-    (state) => state.uiStates.workerConfig
-  ).find((config) => config.id === workerId)
   const { uiStates } = state
+
+  const wrapper = state.workerStates.workerRegistry.find(
+    (wrapper) => wrapper.id === workerId
+  )
   const isOpen = uiStates.isConfiguringWorker
   const dispatch = useDispatch()
 
@@ -37,7 +37,6 @@ export function ConfigureWorkerDialog({ workerId }) {
       type: 'config',
       payload: { name, description, goals, constraints },
     })
-
   }
 
   useEffect(() => {
@@ -46,17 +45,11 @@ export function ConfigureWorkerDialog({ workerId }) {
     )
     if (!currentConfig) {
       dispatch({ type: CREATE_WORKER_CONFIG, payload: { id: workerId } })
-    } else {
-      console.log({ currentConfig })
     }
   }, [dispatch, workerId, uiStates.workerConfig])
 
   return (
-    <Dialog
-      // sx={{ '& .MuiDialog-paper': { width: '80%', maxHeight: 435 } }}
-      // maxWidth="xs"
-      open={isOpen}
-    >
+    <Dialog open={isOpen}>
       <DialogTitle>Configure Worker</DialogTitle>
       <DialogContent dividers>
         <ConfigureWorkerForm
