@@ -52,7 +52,6 @@ export const ConfigureWorkerForm = ({
             multiline
             rows={3}
             label="Goals"
-            
             defaultValue={goals.join('\n')}
             onChange={(e) => {
               const goalsArray = e.target.value

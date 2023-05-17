@@ -4,11 +4,12 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "yarn build:workers && next dev",
+    "build": "yarn build:workers && next build",
     "start": "next start",
+    "lint": "next lint",
     "format": "prettier --write --no-semi --single-quote \"**/*.{js,md}\"",
-    "lint": "next lint"
+    "build:workers": "webpack --mode production"
   },
   "dependencies": {
     "@emotion/react": "^11.11.0",
@@ -16,7 +17,7 @@
     "@fontsource/roboto": "^4.5.8",
     "@mui/icons-material": "^5.11.16",
     "@mui/material": "^5.12.3",
-    "eslint": "8.40.0",
+    "eslint": "^8.40.0",
     "eslint-config-next": "13.4.2",
     "next": "13.4.2",
     "next-redux-wrapper": "^8.1.0",
@@ -26,16 +27,19 @@
     "react-redux": "^8.0.5",
     "redux": "^4.2.1",
     "redux-devtools-extension": "^2.13.9",
-    "redux-thunk": "^2.4.2",
-    "uuid": "^9.0.0"
+    "redux-thunk": "^2.4.2"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.0",
-    "@rollup/plugin-wasm": "^6.1.3",
+    "@babel/core": "^7.21.8",
+    "babel-loader": "^9.1.2",
     "copy-webpack-plugin": "^11.0.0",
+    "html-webpack-plugin": "^5.5.1",
+    "loopgpt-js": "^0.0.1384",
     "prettier": "^2.8.8",
-    "rollup": "^2.79.1",
-    "rollup-plugin-polyfill-node": "^0.12.0",
-    "worker-loader": "^3.0.8"
+    "pyodide": "^0.23.2",
+    "webpack": "^5.82.1",
+    "webpack-cli": "^5.1.1",
+    "worker-loader": "^3.0.8",
+    "uuid": "^9.0.0"
   }
 }

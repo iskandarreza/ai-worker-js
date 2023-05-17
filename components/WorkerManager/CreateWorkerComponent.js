@@ -7,16 +7,18 @@ export class WorkerWrapper {
   constructor(type) {
     this.type = type
     this.id = uuidv4()
-    this.assetPath = `/workers/${type}.worker.js`
+    this.assetPath = `/workers/${type}.js`
     this.worker = new Worker(new URL(this.assetPath, window.location.origin), {
       name: type,
       credentials: 'same-origin',
+      type: 'module',
     })
   }
 }
 
 function createWorker(type) {
   const wrapper = new WorkerWrapper(type)
+  console.log(wrapper.worker)
   wrapper.worker.addEventListener('message', (ev) => {
     console.log(ev.data)
   })
@@ -29,7 +31,7 @@ function createWorker(type) {
 
 export function CreateWorkerComponent() {
   const dispatch = useDispatch()
-  const workerTypes = ['openai', 'pyodide']
+  const workerTypes = ['pyodide', 'loopgpt']
   return (
     <Box>
       {workerTypes.map((type, index) => (

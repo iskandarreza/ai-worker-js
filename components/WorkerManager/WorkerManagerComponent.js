@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 import { WorkerTitleIDComponent } from './WorkerTitleIDComponent'
 import { CreateWorkerComponent } from './CreateWorkerComponent'
 import { PyodideWorkerComponent } from '../WorkerComponents/PyodideWorkerComponent'
-import { OpenAIWorkerComponent } from '../WorkerComponents/OpenAIWorkerComponent'
+import { LoopGPTWorkerComponent } from '../WorkerComponents/LoopGPTWorkerComponent'
 
 export function WorkerManagerComponent() {
   const state = useSelector((state) => state)
@@ -51,12 +51,12 @@ function WorkerRegistryList({ workerRegistry }) {
           <Paper sx={{ display: 'flex' }} elevation={2}>
             <WorkerTitleIDComponent {...{ wrapper }} />
 
-            {wrapper.type === 'openai' && (
-              <OpenAIWorkerComponent {...{ wrapper }} />
-            )}
-
             {wrapper.type === 'pyodide' && (
               <PyodideWorkerComponent {...{ wrapper }} />
+            )}
+
+            {wrapper.type === 'loopgpt' && (
+              <LoopGPTWorkerComponent {...{ wrapper }} />
             )}
           </Paper>
         </ListItem>

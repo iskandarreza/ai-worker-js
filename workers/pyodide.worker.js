@@ -1,5 +1,6 @@
 // Import the Pyodide loader
-importScripts('https://cdn.jsdelivr.net/pyodide/v0.23.2/full/pyodide.js')
+// importScripts('https://cdn.jsdelivr.net/pyodide/v0.23.2/full/pyodide.js')
+import { loadPyodide } from 'pyodide'
 
 // Initialize Pyodide and import required modules
 // Load the Pyodide wasm and set up the module object

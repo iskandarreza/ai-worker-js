@@ -42,7 +42,7 @@ export function listenForResponse(dispatch) {
   }
 }
 
-export function OpenAIWorkerComponent({ wrapper }) {
+export function LoopGPTWorkerComponent({ wrapper }) {
   const workerState = useSelector((state) =>
     state.workerStates.workerRegistry.find((worker) => worker.id === wrapper.id)
   )
@@ -83,9 +83,9 @@ export function OpenAIWorkerComponent({ wrapper }) {
               onClick={() => {
                 wrapper.worker.postMessage({
                   type: 'config',
-                  payload: workerConfigState
+                  payload: workerConfigState,
                 })
-                
+
                 wrapper.worker.postMessage({
                   type: 'chat',
                   payload: null,
