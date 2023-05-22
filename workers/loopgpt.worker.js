@@ -1,4 +1,4 @@
-import loopgpt from 'loopgpt-js'
+import loopgpt from 'loopgpt-js-dev'
 const { Agent } = loopgpt
 
 const initWorker = async () => {
@@ -79,6 +79,7 @@ const initWorker = async () => {
       postResponse({ ...{ cycle }, ...response })
 
       while (response?.command?.name !== 'task_complete' && cycle <= 12) {
+        postMessage('next_cycle', { history: agent.config().history })
         cycle++
         response = await agent.chat({ run_tool: true })
         postState(agent.config())
@@ -104,12 +105,13 @@ const initWorker = async () => {
       function postResponse(response) {
         if (response) {
           // for the UI, don't delete!
+          postMessage('cycle', cycle)
           postMessage('response', response)
-          postMessage('tool_response', agent.tool_response)
+          if (!!agent.tool_response) {
+            postMessage('tool_response', agent.tool_response)
+          }
 
           // the rest are for logging
-          postMessage(`Cycle ${cycle}`, response)
-
           if (response.thoughts) {
             postMessage('thoughts', response.thoughts)
           }
@@ -187,7 +189,6 @@ function postState(agentConfig) {
       content: memory,
     },
   })
-
 
   delete content.memory
   self.postMessage({

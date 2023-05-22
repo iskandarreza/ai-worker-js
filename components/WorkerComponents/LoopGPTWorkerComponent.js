@@ -4,8 +4,10 @@ import { useEffect } from 'react'
 import { RemoveWorkerComponent } from '../WorkerManager/RemoveWorkerComponent'
 import {
   ADD_AGENT_RESPONSE,
+  INCREMENT_AGENT_CYCLE,
   SHOW_AGENT_CONFIG_FORM,
   UPDATE_AGENT_STATE,
+  WAIT_FOR_AGENT_RESPONSE,
 } from '../../store/types'
 import { ConfigureWorkerDialog } from '../WorkerManager/ConfigureWorkerDialog'
 
@@ -14,10 +16,30 @@ export function listenForResponse(dispatch) {
     const { type, payload } = event.data
 
     switch (type) {
+      case 'next_cycle':
+        dispatch({
+          type: WAIT_FOR_AGENT_RESPONSE,
+          payload: { id: payload.fromId },
+        })
+
+        break
       case 'response':
         dispatch({
           type: ADD_AGENT_RESPONSE,
-          payload: payload.content,
+          payload: {
+            id: payload.fromId,
+            content: payload.content,
+          },
+        })
+        break
+
+      case 'cycle':
+        dispatch({
+          type: INCREMENT_AGENT_CYCLE,
+          payload: {
+            id: payload.fromId,
+            cycle: payload.content,
+          },
         })
         break
 
@@ -75,16 +97,28 @@ export function LoopGPTWorkerComponent({ wrapper }) {
 
         {workerConfigState?.goals.length !== 0 ? (
           <>
-            <ListItemButton
-              onClick={() => {
-                wrapper.worker.postMessage({
-                  type: 'chat',
-                  payload: null,
-                })
-              }}
-            >
-              Start chat
-            </ListItemButton>
+            {!workerState.waitForResponse ? (
+              <ListItemButton
+                onClick={() => {
+                  wrapper.worker.postMessage({
+                    type: 'chat',
+                    payload: {
+                      id: wrapper.id,
+                    },
+                  })
+                  dispatch({
+                    type: WAIT_FOR_AGENT_RESPONSE,
+                    payload: { id: wrapper.id },
+                  })
+                }}
+              >
+                Start chat
+              </ListItemButton>
+            ) : (
+              <p>{`Waiting for response... ${
+                wrapper.cycle ? `cycle ${wrapper.cycle + 1}` : ''
+              }`}</p>
+            )}
 
             {workerState.state?.state === 'TOOL_STAGED' ? (
               <ListItemButton

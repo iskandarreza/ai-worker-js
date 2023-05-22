@@ -6,7 +6,6 @@ import {
 } from '../types'
 
 const initialState = {
-  chatIsLoading: false,
   isConfiguringWorker: false,
   workerConfig: [],
 }
