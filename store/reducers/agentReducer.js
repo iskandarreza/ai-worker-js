@@ -5,105 +5,66 @@ import {
   REMOVE_AGENT,
   UPDATE_AGENT_STATE,
   WAIT_FOR_AGENT_RESPONSE,
-} from '../types'
+} from '../types';
 
 const initialState = {
   workerRegistry: [],
   agentResponses: [],
-}
+};
 
-export default function (state = initialState, action) {
+export default function agentReducer(state = initialState, action) {
   switch (action.type) {
     case ADD_AGENT:
       return {
         ...state,
         workerRegistry: [...state.workerRegistry, action.payload],
-      }
+      };
 
     case WAIT_FOR_AGENT_RESPONSE:
-      const updatedRegistrationResponseState = state.workerRegistry.map(
-        (registration) => {
-          if (registration.id === action.payload.id) {
-            return {
-              ...registration,
-              waitForResponse: true,
-            }
-          }
-          return registration
+    case UPDATE_AGENT_STATE:
+    case INCREMENT_AGENT_CYCLE:
+      const updatedWorkerRegistry = state.workerRegistry.map((registration) => {
+        if (registration.id === action.payload.id) {
+          return {
+            ...registration,
+            waitForResponse: action.type === WAIT_FOR_AGENT_RESPONSE,
+            state: action.type === UPDATE_AGENT_STATE ? action.payload.state : registration.state,
+            cycle: action.type === INCREMENT_AGENT_CYCLE ? action.payload.cycle : registration.cycle,
+          };
         }
-      )
+        return registration;
+      });
 
       return {
         ...state,
-        workerRegistry: updatedRegistrationResponseState,
-      }
+        workerRegistry: updatedWorkerRegistry,
+      };
 
     case ADD_AGENT_RESPONSE:
-      const resetRegistrationResponseState = state.workerRegistry.map(
-        (registration) => {
-          if (registration.id === action.payload.id) {
-            return {
-              ...registration,
-              waitForResponse: false,
-            }
-          }
-          return registration
-        }
-      )
+      const existingResponse = state.agentResponses.find(
+        (response) => response.id === action.payload.id && response.cycle === action.payload.content.cycle
+      );
+
+      if (existingResponse) {
+        return state;
+      }
+
+      const updatedAgentResponses = [...state.agentResponses, { ...action.payload.content, id: action.payload.id }];
 
       return {
         ...state,
-        agentResponses: [...state.agentResponses, action.payload.content],
-        workerRegistry: resetRegistrationResponseState,
-      }
-
-    case UPDATE_AGENT_STATE:
-      const updatedRegistrationState = state.workerRegistry.map(
-        (registration) => {
-          if (registration.id === action.payload.id) {
-            return {
-              ...registration,
-              state: action.payload.state,
-            }
-          }
-          return registration
-        }
-      )
-
-      return {
-        ...state,
-        workerRegistry: updatedRegistrationState,
-      }
-
-    case INCREMENT_AGENT_CYCLE:
-      const updatedRegistrationCycle = state.workerRegistry.map(
-        (registration) => {
-          if (registration.id === action.payload.id) {
-            return {
-              ...registration,
-              cycle: action.payload.cycle,
-            }
-          }
-          return registration
-        }
-      )
-
-      return {
-        ...state,
-        workerRegistry: updatedRegistrationCycle,
-      }
+        agentResponses: updatedAgentResponses,
+      };
 
     case REMOVE_AGENT:
-      const filteredAgents = state.workerRegistry.filter(
-        (agent) => agent.id !== action.payload
-      )
+      const filteredAgents = state.workerRegistry.filter((agent) => agent.id !== action.payload);
 
       return {
         ...state,
         workerRegistry: filteredAgents,
-      }
+      };
 
     default:
-      return state
+      return state;
   }
 }

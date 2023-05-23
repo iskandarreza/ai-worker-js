@@ -15,7 +15,7 @@ export function AppStateComponent() {
 
   return (
     <Box>
-      <Paper>
+      <Paper sx={{ padding: '16px' }}>
         <h2>State Viewer</h2>
 
         <h4>Worker Registry</h4>
@@ -38,7 +38,7 @@ export function AppStateComponent() {
           </pre>
         </Typography>
       </Paper>
-      <Paper>
+      <Paper sx={{ padding: '16px' }}>
         <h4>UI State</h4>
         <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
           <DynamicReactJson
@@ -50,7 +50,7 @@ export function AppStateComponent() {
       </Paper>
 
       {!!agentResponses.length > 0 ?
-        <Paper>
+        <Paper sx={{ padding: '16px' }}>
           <h4>Agent Responses</h4>
 
           <AgentResponsesList {...{ agentResponses }} />
