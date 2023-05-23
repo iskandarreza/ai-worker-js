@@ -32,10 +32,11 @@ export function CreateWorkerComponent() {
   const dispatch = useDispatch()
   const workerTypes = ['pyodide', 'loopgpt']
   return (
-    <Box>
+    <Box display={'flex'}>
       {workerTypes.map((type, index) => (
         <ListItem key={`${type}-${index}`}>
           <Button
+            variant='outlined'
             onClick={() => {
               dispatch({ type: ADD_AGENT, payload: createWorker(type) })
             }}

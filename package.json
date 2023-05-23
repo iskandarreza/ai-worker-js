@@ -26,6 +26,7 @@
     "prop-types": "^15.8.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-json-view": "^1.21.3",
     "react-redux": "^8.0.5",
     "redux": "^4.2.1",
     "redux-devtools-extension": "^2.13.9",
@@ -34,7 +35,7 @@
   "devDependencies": {
     "@babel/core": "^7.21.8",
     "babel-loader": "^9.1.2",
-    "loopgpt-js": "^0.0.1388",
+    "loopgpt-js": "^0.0.1389",
     "prettier": "^2.8.8",
     "pyodide": "^0.23.2",
     "uuid": "^9.0.0",

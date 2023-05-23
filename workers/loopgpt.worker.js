@@ -1,4 +1,4 @@
-import loopgpt from 'loopgpt-js-dev'
+import loopgpt from 'loopgpt-js'
 const { Agent } = loopgpt
 
 const initWorker = async () => {

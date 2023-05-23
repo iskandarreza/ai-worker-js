@@ -1,4 +1,4 @@
-import { Box, ListItemButton } from '@mui/material'
+import { Box, ListItem, ListItemButton } from '@mui/material'
 import { useDispatch, useSelector } from 'react-redux'
 import { useEffect } from 'react'
 import { RemoveWorkerComponent } from '../WorkerManager/RemoveWorkerComponent'
@@ -51,10 +51,6 @@ export function listenForResponse(dispatch) {
             state: payload.content,
           },
         })
-
-        if (payload.content.state === 'TOOL_STAGED') {
-          console.log('TOOL_STAGED')
-        }
 
         break
 
@@ -115,9 +111,7 @@ export function LoopGPTWorkerComponent({ wrapper }) {
                 Start chat
               </ListItemButton>
             ) : (
-              <p>{`Waiting for response... ${
-                wrapper.cycle ? `cycle ${wrapper.cycle + 1}` : ''
-              }`}</p>
+              <ListItem>{`Waiting for response... ${wrapper.cycle ? `cycle ${wrapper.cycle + 1}` : ''}`}</ListItem>
             )}
 
             {workerState.state?.state === 'TOOL_STAGED' ? (
@@ -138,18 +132,6 @@ export function LoopGPTWorkerComponent({ wrapper }) {
           ''
         )}
 
-        <ListItemButton
-          onClick={() => {
-            wrapper.worker.postMessage({ type: 'state' })
-          }}
-        >
-          Agent State:{' '}
-          {`${
-            workerState.state?.goals.length === 0
-              ? 'CONFIG'
-              : workerState.state?.state
-          }`}
-        </ListItemButton>
         <RemoveWorkerComponent
           {...{ wrapper, eventListener: listenForResponse }}
         />

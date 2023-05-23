@@ -1,6 +1,6 @@
-import { Box, ListItem, Paper } from '@mui/material'
+import { Box, Divider, ListItem, Paper, Typography } from '@mui/material'
 import { useSelector } from 'react-redux'
-import { WorkerTitleIDComponent } from './WorkerTitleIDComponent'
+import { WorkerHeaderComponent } from './WorkerHeaderComponent'
 import { CreateWorkerComponent } from './CreateWorkerComponent'
 import { PyodideWorkerComponent } from '../WorkerComponents/PyodideWorkerComponent'
 import { LoopGPTWorkerComponent } from '../WorkerComponents/LoopGPTWorkerComponent'
@@ -8,7 +8,8 @@ import { LoopGPTWorkerComponent } from '../WorkerComponents/LoopGPTWorkerCompone
 export function WorkerManagerComponent() {
   const state = useSelector((state) => state)
   const { workerStates } = state
-  const { workerRegistry, agentResponses } = workerStates
+  const { workerRegistry } = workerStates
+
 
   return (
     <Box>
@@ -19,37 +20,26 @@ export function WorkerManagerComponent() {
       ) : (
         ''
       )}
-
-      {!!agentResponses.length > 0 ? (
-        <AgentResponsesList {...{ agentResponses }} />
-      ) : (
-        ''
-      )}
-    </Box>
-  )
-}
-
-function AgentResponsesList({ agentResponses }) {
-  return (
-    <Box>
-      <h2>Agent Responses</h2>
-      {agentResponses?.map((response, index) => (
-        <ListItem key={`${index}`}>
-          {JSON.stringify(response, null, 4)}
-        </ListItem>
-      ))}
     </Box>
   )
 }
 
 function WorkerRegistryList({ workerRegistry }) {
   return (
-    <Box>
-      <h2>Agent Registry</h2>
-      {workerRegistry?.map((wrapper, _index) => (
-        <ListItem key={`${wrapper.type}-${wrapper.id}`}>
-          <Paper sx={{ display: 'flex' }} elevation={2}>
-            <WorkerTitleIDComponent {...{ wrapper }} />
+    <Box sx={{ margin: '0 16px' }}>
+      <h2>Worker Manager</h2>
+
+      <Typography
+        variant="caption"
+        style={{ overflow: 'auto', wordWrap: 'break-word' }}
+      >
+        {workerRegistry?.map((wrapper, _index) => (
+          <Paper sx={{ margin: '16px 0' }} key={`${wrapper.type}-${wrapper.id}`}>
+            <Box elevation={1}>
+              <WorkerHeaderComponent {...{ wrapper }} />
+            </Box>
+
+            <Divider />
 
             {wrapper.type === 'pyodide' && (
               <PyodideWorkerComponent {...{ wrapper }} />
@@ -59,8 +49,8 @@ function WorkerRegistryList({ workerRegistry }) {
               <LoopGPTWorkerComponent {...{ wrapper }} />
             )}
           </Paper>
-        </ListItem>
-      ))}
+        ))}
+      </Typography>
     </Box>
   )
 }

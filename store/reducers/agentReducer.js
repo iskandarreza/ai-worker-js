@@ -39,7 +39,6 @@ export default function (state = initialState, action) {
       }
 
     case ADD_AGENT_RESPONSE:
-      console.log({ state, action })
       const resetRegistrationResponseState = state.workerRegistry.map(
         (registration) => {
           if (registration.id === action.payload.id) {
