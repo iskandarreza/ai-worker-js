@@ -18,9 +18,9 @@ class WorkerWrapper {
 
 function createWorker(type) {
   const wrapper = new WorkerWrapper(type)
-  wrapper.worker.addEventListener('message', (ev) => {
-    console.log(ev.data)
-  })
+  // wrapper.worker.addEventListener('message', (ev) => {
+  //   console.log(ev.data)
+  // })
   wrapper.worker.postMessage({
     type: 'init',
     payload: { id: wrapper.id },
@@ -36,7 +36,7 @@ export function CreateWorkerComponent() {
       {workerTypes.map((type, index) => (
         <ListItem key={`${type}-${index}`}>
           <Button
-            variant='outlined'
+            variant="outlined"
             onClick={() => {
               dispatch({ type: ADD_AGENT, payload: createWorker(type) })
             }}

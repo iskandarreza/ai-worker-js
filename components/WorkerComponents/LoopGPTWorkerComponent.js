@@ -17,12 +17,9 @@ export function listenForResponse(dispatch) {
 
     switch (type) {
       case 'next_cycle':
-        dispatch({
-          type: WAIT_FOR_AGENT_RESPONSE,
-          payload: { id: payload.fromId },
-        })
-
+        waitForAgentResponse(dispatch, payload.fromId)
         break
+
       case 'response':
         dispatch({
           type: ADD_AGENT_RESPONSE,
@@ -51,7 +48,6 @@ export function listenForResponse(dispatch) {
             state: payload.content,
           },
         })
-
         break
 
       default:
@@ -83,13 +79,21 @@ export function LoopGPTWorkerComponent({ wrapper }) {
   return (
     <>
       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <ListItemButton
-          onClick={() => {
-            dispatch({ type: SHOW_AGENT_CONFIG_FORM })
-          }}
-        >
-          Configure
-        </ListItemButton>
+        <ListItem sx={{ paddingLeft: 0 }}>
+          <ListItemButton
+            onClick={() => {
+              dispatch({ type: SHOW_AGENT_CONFIG_FORM })
+            }}
+          >
+            Configure
+          </ListItemButton>
+
+          <RemoveWorkerComponent
+            {...{ wrapper, eventListener: listenForResponse }}
+          />
+
+          <ListItemButton disabled>Start</ListItemButton>
+        </ListItem>
 
         {workerConfigState?.goals.length !== 0 ? (
           <>
@@ -102,16 +106,17 @@ export function LoopGPTWorkerComponent({ wrapper }) {
                       id: wrapper.id,
                     },
                   })
-                  dispatch({
-                    type: WAIT_FOR_AGENT_RESPONSE,
-                    payload: { id: wrapper.id },
-                  })
+                  waitForAgentResponse(dispatch, wrapper.id)
                 }}
               >
                 Start chat
               </ListItemButton>
             ) : (
-              <ListItem>{`Waiting for response... ${wrapper.cycle ? `cycle ${wrapper.cycle + 1}` : ''}`}</ListItem>
+              <ListItem>
+                {`Waiting for response... ${
+                  wrapper.cycle ? `cycle ${wrapper.cycle + 1}` : ''
+                }`}
+              </ListItem>
             )}
 
             {workerState.state?.state === 'TOOL_STAGED' ? (
@@ -120,9 +125,14 @@ export function LoopGPTWorkerComponent({ wrapper }) {
                   wrapper.worker.postMessage({
                     type: 'runTool',
                   })
+                  waitForAgentResponse(dispatch, wrapper.id)
                 }}
+                disabled={workerState.waitForResponse}
               >
-                Run tool: {`${JSON.stringify(workerState.state.staging_tool)}`}
+                {workerState.waitForResponse
+                  ? `Running command :`
+                  : `Next command: `}{' '}
+                {`${JSON.stringify(workerState.state.staging_tool)}`}
               </ListItemButton>
             ) : (
               ''
@@ -131,10 +141,6 @@ export function LoopGPTWorkerComponent({ wrapper }) {
         ) : (
           ''
         )}
-
-        <RemoveWorkerComponent
-          {...{ wrapper, eventListener: listenForResponse }}
-        />
       </Box>
 
       <ConfigureWorkerDialog
@@ -144,4 +150,11 @@ export function LoopGPTWorkerComponent({ wrapper }) {
       />
     </>
   )
+}
+
+function waitForAgentResponse(dispatch, id) {
+  dispatch({
+    type: WAIT_FOR_AGENT_RESPONSE,
+    payload: { id },
+  })
 }

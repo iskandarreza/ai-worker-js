@@ -105,8 +105,22 @@ const initWorker = async () => {
       function postResponse(response) {
         if (response) {
           // for the UI, don't delete!
+          let content = {}
+          try {
+            const parsed = JSON.parse(response)
+            if (parsed.error) {
+              content = {
+                ...parsed,
+              }
+            }
+          } catch (err) {
+            content = {
+              ...response,
+            }
+          }
+
           postMessage('cycle', cycle)
-          postMessage('response', response)
+          postMessage('response', { ...content, cycle, config: agent.config() })
           if (!!agent.tool_response) {
             postMessage('tool_response', agent.tool_response)
           }

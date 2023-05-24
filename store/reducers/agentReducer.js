@@ -5,12 +5,12 @@ import {
   REMOVE_AGENT,
   UPDATE_AGENT_STATE,
   WAIT_FOR_AGENT_RESPONSE,
-} from '../types';
+} from '../types'
 
 const initialState = {
   workerRegistry: [],
   agentResponses: [],
-};
+}
 
 export default function agentReducer(state = initialState, action) {
   switch (action.type) {
@@ -18,7 +18,7 @@ export default function agentReducer(state = initialState, action) {
       return {
         ...state,
         workerRegistry: [...state.workerRegistry, action.payload],
-      };
+      }
 
     case WAIT_FOR_AGENT_RESPONSE:
     case UPDATE_AGENT_STATE:
@@ -28,43 +28,56 @@ export default function agentReducer(state = initialState, action) {
           return {
             ...registration,
             waitForResponse: action.type === WAIT_FOR_AGENT_RESPONSE,
-            state: action.type === UPDATE_AGENT_STATE ? action.payload.state : registration.state,
-            cycle: action.type === INCREMENT_AGENT_CYCLE ? action.payload.cycle : registration.cycle,
-          };
+            state:
+              action.type === UPDATE_AGENT_STATE
+                ? action.payload.state
+                : registration.state,
+            cycle:
+              action.type === INCREMENT_AGENT_CYCLE
+                ? action.payload.cycle
+                : registration.cycle,
+          }
         }
-        return registration;
-      });
+        return registration
+      })
 
       return {
         ...state,
         workerRegistry: updatedWorkerRegistry,
-      };
+      }
 
     case ADD_AGENT_RESPONSE:
       const existingResponse = state.agentResponses.find(
-        (response) => response.id === action.payload.id && response.cycle === action.payload.content.cycle
-      );
+        (response) =>
+          response.id === action.payload.id &&
+          response.cycle === action.payload.content.cycle
+      )
 
       if (existingResponse) {
-        return state;
+        return state
       }
 
-      const updatedAgentResponses = [...state.agentResponses, { ...action.payload.content, id: action.payload.id }];
+      const updatedAgentResponses = [
+        ...state.agentResponses,
+        { ...action.payload.content, id: action.payload.id },
+      ]
 
       return {
         ...state,
         agentResponses: updatedAgentResponses,
-      };
+      }
 
     case REMOVE_AGENT:
-      const filteredAgents = state.workerRegistry.filter((agent) => agent.id !== action.payload);
+      const filteredAgents = state.workerRegistry.filter(
+        (agent) => agent.id !== action.payload
+      )
 
       return {
         ...state,
         workerRegistry: filteredAgents,
-      };
+      }
 
     default:
-      return state;
+      return state
   }
 }

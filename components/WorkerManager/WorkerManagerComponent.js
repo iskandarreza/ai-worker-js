@@ -10,7 +10,6 @@ export function WorkerManagerComponent() {
   const { workerStates } = state
   const { workerRegistry } = workerStates
 
-
   return (
     <Box>
       <CreateWorkerComponent />
@@ -27,14 +26,16 @@ export function WorkerManagerComponent() {
 function WorkerRegistryList({ workerRegistry }) {
   return (
     <Box sx={{ margin: '0 16px' }}>
-      <h2>Worker Manager</h2>
-
+      <h4>Worker Registry</h4>
       <Typography
         variant="caption"
         style={{ overflow: 'auto', wordWrap: 'break-word' }}
       >
         {workerRegistry?.map((wrapper, _index) => (
-          <Paper sx={{ margin: '16px 0' }} key={`${wrapper.type}-${wrapper.id}`}>
+          <Paper
+            sx={{ margin: '16px 0' }}
+            key={`${wrapper.type}-${wrapper.id}`}
+          >
             <Box elevation={1}>
               <WorkerHeaderComponent {...{ wrapper }} />
             </Box>
