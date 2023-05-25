@@ -12,6 +12,9 @@ export function RemoveWorkerComponent({ wrapper, eventListener }) {
   const dispatch = useDispatch()
   return (
     <ListItemButton
+      sx={{
+        flex: 1,
+      }}
       onClick={() => {
         !!eventListener &&
           wrapper.worker.removeEventListener('message', eventListener)

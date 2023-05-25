@@ -47,7 +47,6 @@ export const ConfigureWorkerForm = ({
       <Grid container item xs={12}>
         <Grid container item xs={12}>
           <TextField
-            // sx={{ margin: 'auto 16px' }}
             fullWidth
             multiline
             rows={3}
@@ -65,7 +64,6 @@ export const ConfigureWorkerForm = ({
 
         <Grid container item xs={12}>
           <TextField
-            // sx={{ margin: 'auto 16px' }}
             fullWidth
             multiline
             rows={3}

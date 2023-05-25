@@ -4,10 +4,13 @@ const { Agent } = loopgpt
 const initWorker = async () => {
   let agent
   let cycle = 0
+  let cycleLimit = 12
   let response
+  let stopLoop = false
 
   self.onmessage = async (event) => {
     const { type, payload } = event.data
+    console.debug(`worker${!!self.id ? ` ${self.id}` : ''} received dispatch`, { type, payload })
 
     const postMessage = (type, payload) => {
       self.postMessage({
@@ -28,16 +31,19 @@ const initWorker = async () => {
         break
 
       case 'config':
-        agent.name = payload.name
-        agent.description = payload.description
-        agent.goals = payload.goals
-        agent.constraints = payload.constraints
-        postState(agent.config())
+        setConfig()
         break
 
       case 'chat':
-        // startChat()
+        startChat()
+        break
+
+      case 'loop':
         chatLoop()
+        break
+
+      case 'stop':
+        stopLoop = true
         break
 
       case 'runTool':
@@ -48,96 +54,93 @@ const initWorker = async () => {
         postState(agent.config())
         break
 
-      case 'hello':
-        postMessage('message', 'Hello!')
-        break
-
       default:
         break
     }
 
-    async function runTool() {
-      postMessage('message', 'Running staged tool...')
-      const response = await agent.chat({ run_tool: true })
+    function setConfig() {
+      agent.name = payload.name
+      agent.description = payload.description
+      agent.goals = payload.goals
+      agent.constraints = payload.constraints
       postState(agent.config())
-      if (response) postMessage('response', response)
+    }
+
+    function postResponse(response) {
+      if (response) {
+        let content = {}
+        try {
+          const parsed = JSON.parse(response)
+          if (parsed.error) {
+            content = {
+              ...parsed,
+            }
+          }
+        } catch (err) {
+          content = {
+            ...response,
+          }
+        }
+
+        postState(agent.config())
+        postMessage('response', { ...content, cycle, config: agent.config() })
+      }
     }
 
     async function startChat() {
-      postMessage('message', 'Initiating chat...')
-      const response = await agent.chat({ message: payload })
-      postState(agent.config())
-      postMessage('response', response)
-      return response
+      try {
+        postMessage('message', 'Initiating chat...')
+        const response = await agent.chat({ message: payload.message })
+        postResponse(response)
+        return response
+      } catch (error) {
+        postError(error)
+      }
+    }
+
+    async function runTool() {
+      postMessage('message', 'Running staged tool...')
+      try {
+        const response = await agent.chat({ run_tool: true })
+        if (response) postResponse(response)
+      } catch (error) {
+        postError(error)
+      }
     }
 
     async function chatLoop() {
       postMessage('message', 'Initiating chat...')
 
-      response = await agent.chat({ message: null })
-      postState(agent.config())
-      postResponse({ ...{ cycle }, ...response })
+      try {
+        stopLoop = false
+        response = await agent.chat({ message: null })
+        postResponse(response)
 
-      while (response?.command?.name !== 'task_complete' && cycle <= 12) {
-        postMessage('next_cycle', { history: agent.config().history })
-        cycle++
-        response = await agent.chat({ run_tool: true })
-        postState(agent.config())
-        postResponse({ ...{ cycle }, ...response })
+        while (!stopLoop && cycle <= cycleLimit && response?.command?.name !== 'task_complete') {
+          postMessage('next_cycle', { history: agent.config().history })
+          cycle++
+          response = await agent.chat({ run_tool: true })
+          postState(agent.config())
+          postResponse(response)
 
-        if (
-          JSON.stringify(agent.config()?.tool_response)?.includes(
-            'Critical error, threads should be ended'
-          )
-        ) {
-          const errMsg = 'Critical error, ending loop.'
-          postError({ errMsg, response })
-          throw Error(errMsg)
-        }
-
-        if (response?.error) {
-          const errMsg = 'Error in response, ending loop.'
-          postError({ errMsg, response })
-          throw Error(errMsg)
-        }
-      }
-
-      function postResponse(response) {
-        if (response) {
-          // for the UI, don't delete!
-          let content = {}
-          try {
-            const parsed = JSON.parse(response)
-            if (parsed.error) {
-              content = {
-                ...parsed,
-              }
-            }
-          } catch (err) {
-            content = {
-              ...response,
-            }
+          if (
+            JSON.stringify(agent.config()?.tool_response)?.includes(
+              'Critical error, threads should be ended'
+            )
+          ) {
+            const errMsg = 'Critical error, ending loop.'
+            postError({ errMsg, response })
+            throw Error(errMsg)
           }
 
-          postMessage('cycle', cycle)
-          postMessage('response', { ...content, cycle, config: agent.config() })
-          if (!!agent.tool_response) {
-            postMessage('tool_response', agent.tool_response)
-          }
-
-          // the rest are for logging
-          if (response.thoughts) {
-            postMessage('thoughts', response.thoughts)
-          }
-
-          if (response.plan) {
-            postMessage('plan', response.plan)
-          }
-
-          if (response.command) {
-            postMessage('command', response.command)
+          if (response?.error) {
+            const errMsg = 'Error in response, ending loop.'
+            postError({ errMsg, response })
+            throw Error(errMsg)
           }
         }
+      } catch (error) {
+        postError(error)
       }
     }
   }

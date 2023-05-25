@@ -32,6 +32,12 @@
     "redux-devtools-extension": "^2.13.9",
     "redux-thunk": "^2.4.2"
   },
+  "overrides": {
+    "react-json-view": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
+  },
   "devDependencies": {
     "@babel/core": "^7.21.8",
     "babel-loader": "^9.1.2",

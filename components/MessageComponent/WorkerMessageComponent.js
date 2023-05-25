@@ -44,7 +44,7 @@ export function WorkerMessageComponent({ response }) {
       }
     }
 
-    if (response.config?.tool_response) {
+    if (response.config && response.config.tool_response) {
       _fields.push('results')
     }
     if (response.thoughts) {
