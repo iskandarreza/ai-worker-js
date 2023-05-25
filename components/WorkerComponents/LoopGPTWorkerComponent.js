@@ -107,8 +107,11 @@ export function LoopGPTWorkerComponent({ wrapper }) {
             primary={
               !workerState.waitForResponse
                 ? 'Ready'
-                : `Waiting for response... ${typeof wrapper.cycle !== 'undefined' ? `cycle ${wrapper.cycle + 1}` : ''
-                }`
+                : `Waiting for response... ${
+                    typeof wrapper.cycle !== 'undefined'
+                      ? `cycle ${wrapper.cycle + 1}`
+                      : ''
+                  }`
             }
             primaryTypographyProps={{
               fontSize: '1em',
@@ -201,13 +204,13 @@ export function LoopGPTWorkerComponent({ wrapper }) {
                 >
                   {workerState.waitForResponse
                     ? `Running command: ${JSON.stringify(
-                      workerState.state.staging_tool
-                    )}`
-                    : workerState.state?.staging_tool?.name !== 'task_complete'
-                      ? `Run next command: ${JSON.stringify(
                         workerState.state.staging_tool
                       )}`
-                      : 'No command to run next'}
+                    : workerState.state?.staging_tool?.name !== 'task_complete'
+                    ? `Run next command: ${JSON.stringify(
+                        workerState.state.staging_tool
+                      )}`
+                    : 'No command to run next'}
                 </ListItemButton>
               ) : (
                 ''

@@ -35,8 +35,9 @@ export default function agentReducer(state = initialState, action) {
             cycle:
               action.type === INCREMENT_AGENT_CYCLE
                 ? action.payload.cycle
-                : typeof registration.cycle !== 'undefined' ?
-                  registration.cycle : 0,
+                : typeof registration.cycle !== 'undefined'
+                ? registration.cycle
+                : 0,
           }
         }
         return registration
