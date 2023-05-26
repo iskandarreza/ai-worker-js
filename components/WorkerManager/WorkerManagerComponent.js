@@ -4,6 +4,7 @@ import { WorkerHeaderComponent } from './WorkerHeaderComponent'
 import { CreateWorkerComponent } from './CreateWorkerComponent'
 import { PyodideWorkerComponent } from '../WorkerComponents/PyodideWorkerComponent'
 import { LoopGPTWorkerComponent } from '../WorkerComponents/LoopGPTWorkerComponent'
+import { TokenCounterWorkerComponent } from '../WorkerComponents/TokenCounterWorkerComponent'
 
 export function WorkerManagerComponent() {
   const state = useSelector((state) => state)
@@ -15,7 +16,12 @@ export function WorkerManagerComponent() {
       <CreateWorkerComponent />
 
       {!!workerRegistry.length > 0 ? (
-        <WorkerRegistryList {...{ workerRegistry }} />
+        <>
+          <WorkerRegistryList {...{ workerRegistry }} />
+          <Box sx={{ margin: '0 16px' }}>
+            <h4>Messages</h4>
+          </Box>
+        </>
       ) : (
         ''
       )}
@@ -41,6 +47,10 @@ function WorkerRegistryList({ workerRegistry }) {
             </Box>
 
             <Divider />
+
+            {wrapper.type === 'token-counter' && (
+              <TokenCounterWorkerComponent {...{ wrapper }} />
+            )}
 
             {wrapper.type === 'pyodide' && (
               <PyodideWorkerComponent {...{ wrapper }} />

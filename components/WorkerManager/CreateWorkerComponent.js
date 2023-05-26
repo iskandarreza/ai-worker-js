@@ -2,6 +2,7 @@ import { Box, Button, ListItem } from '@mui/material'
 import { useDispatch } from 'react-redux'
 import { ADD_AGENT } from '../../store/types'
 import { v4 as uuidv4 } from 'uuid'
+import { useEffect } from 'react'
 
 class WorkerWrapper {
   constructor(type) {
@@ -31,6 +32,72 @@ function createWorker(type) {
 export function CreateWorkerComponent() {
   const dispatch = useDispatch()
   const workerTypes = ['pyodide', 'loopgpt']
+
+  useEffect(() => {
+    const tokenCounter = createWorker('token-counter')
+    const scraperWorker = createWorker('scraper-worker')
+    dispatch({ type: ADD_AGENT, payload: tokenCounter })
+    dispatch({ type: ADD_AGENT, payload: scraperWorker })
+
+    function listenForTokenCounter() {
+      return (event) => {
+        const { type, payload } = event.data
+
+        // console.debug(`main received dispatch`, { type, payload })
+
+        switch (type) {
+          case 'countTokenResults':
+            scraperWorker.worker.postMessage({
+              type: 'countTokenResults',
+              payload,
+            })
+            break
+
+          default:
+            break
+        }
+      }
+    }
+
+    function listenForScraper() {
+      return (event) => {
+        const { type, payload } = event.data
+
+        // console.debug(`main received dispatch`, { type, payload })
+
+        switch (type) {
+          case 'countTokens':
+            tokenCounter.worker.postMessage({ type: 'countTokens', payload })
+            break
+
+          case 'scraperResults':
+            console.log({ scraperResults: payload })
+            break
+
+          default:
+            break
+        }
+      }
+    }
+
+    tokenCounter.worker.addEventListener('message', listenForTokenCounter())
+    scraperWorker.worker.addEventListener('message', listenForScraper())
+
+    scraperWorker.worker.postMessage({
+      type: 'scrapePage',
+      payload: {
+        url: 'https://cameronrwolfe.substack.com/p/practical-prompt-engineering-part',
+        selector: 'p',
+        maxTokens: 1000,
+      },
+    })
+
+    // return () => {
+    //   tokenCounter.worker.removeEventListener('message', listenForTokenCounter)
+    //   scraperWorker.worker.removeEventListener('message', listenForScraper)
+    // }
+  }, [])
+
   return (
     <Box display={'flex'}>
       {workerTypes.map((type, index) => (
