@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { ADD_AGENT } from '../../store/types'
 import { v4 as uuidv4 } from 'uuid'
 import { useEffect } from 'react'
+import { wrap } from 'comlink'
 
 class WorkerWrapper {
   constructor(type) {
@@ -14,14 +15,12 @@ class WorkerWrapper {
       credentials: 'same-origin',
       type: 'module',
     })
+    this.comlink = wrap(this.worker)
   }
 }
 
 function createWorker(type) {
   const wrapper = new WorkerWrapper(type)
-  // wrapper.worker.addEventListener('message', (ev) => {
-  //   console.log(ev.data)
-  // })
   wrapper.worker.postMessage({
     type: 'init',
     payload: { id: wrapper.id },
@@ -42,15 +41,11 @@ export function CreateWorkerComponent() {
     function listenForTokenCounter() {
       return (event) => {
         const { type, payload } = event.data
-
         // console.debug(`main received dispatch`, { type, payload })
 
         switch (type) {
-          case 'countTokenResults':
-            scraperWorker.worker.postMessage({
-              type: 'countTokenResults',
-              payload,
-            })
+          case 'init':
+            console.log({ type, payload })
             break
 
           default:
@@ -62,16 +57,21 @@ export function CreateWorkerComponent() {
     function listenForScraper() {
       return (event) => {
         const { type, payload } = event.data
-
         // console.debug(`main received dispatch`, { type, payload })
 
         switch (type) {
-          case 'countTokens':
-            tokenCounter.worker.postMessage({ type: 'countTokens', payload })
+          case 'init':
+            console.log({ type, payload })
             break
 
-          case 'scraperResults':
-            console.log({ scraperResults: payload })
+          case 'countTokens':
+            tokenCounter.comlink.countTokens(payload).then((result) => {
+              scraperWorker.worker.postMessage({
+                type: 'countTokenResults',
+                payload: result
+              })
+            })
+
             break
 
           default:
@@ -80,22 +80,33 @@ export function CreateWorkerComponent() {
       }
     }
 
+    tokenCounter.comlink.init()
+    scraperWorker.comlink.init()
+
     tokenCounter.worker.addEventListener('message', listenForTokenCounter())
     scraperWorker.worker.addEventListener('message', listenForScraper())
 
-    scraperWorker.worker.postMessage({
-      type: 'scrapePage',
-      payload: {
+    let test = async () => {
+      const results = await scraperWorker.comlink.scrape({
         url: 'https://cameronrwolfe.substack.com/p/practical-prompt-engineering-part',
         selector: 'p',
         maxTokens: 1000,
-      },
+      })
+
+      return results
+    }
+
+    test().then(results => {
+      console.log({ results })
     })
 
-    // return () => {
-    //   tokenCounter.worker.removeEventListener('message', listenForTokenCounter)
-    //   scraperWorker.worker.removeEventListener('message', listenForScraper)
-    // }
+
+    return () => {
+      tokenCounter.worker.removeEventListener('message', listenForTokenCounter)
+      scraperWorker.worker.removeEventListener('message', listenForScraper)
+      tokenCounter.comlink.terminate()
+      scraperWorker.comlink.terminate()
+    }
   }, [])
 
   return (
