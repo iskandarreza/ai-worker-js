@@ -10,7 +10,10 @@ const initWorker = async () => {
 
   self.onmessage = async (event) => {
     const { type, payload } = event.data
-    console.debug(`worker${!!self.id ? ` ${self.id}` : ''} received dispatch`, { type, payload })
+    console.debug(`worker${!!self.id ? ` ${self.id}` : ''} received dispatch`, {
+      type,
+      payload,
+    })
 
     const postMessage = (type, payload) => {
       self.postMessage({
@@ -116,7 +119,11 @@ const initWorker = async () => {
         response = await agent.chat({ message: null })
         postResponse(response)
 
-        while (!stopLoop && cycle <= cycleLimit && response?.command?.name !== 'task_complete') {
+        while (
+          !stopLoop &&
+          cycle <= cycleLimit &&
+          response?.command?.name !== 'task_complete'
+        ) {
           postMessage('next_cycle', { history: agent.config().history })
           cycle++
           response = await agent.chat({ run_tool: true })
@@ -151,23 +158,13 @@ const initWorker = async () => {
 }
 
 async function initAgent() {
-  const openaiApiKeyResponse = await fetch('/api/openai', {
-    method: 'POST',
-  })
-  const googleApiKeyResponse = await fetch('/api/google', {
-    method: 'POST',
-  })
-
-  const { apiKey: openaiApiKey } = await openaiApiKeyResponse.json()
-  const { apiKey: googleApiKey, cxId } = await googleApiKeyResponse.json()
-
   const apiUrl = 'https://api.openai.com/v1/chat/completions'
 
   const keys = {
-    openai: { apiKey: openaiApiKey, apiUrl },
+    openai: { apiKey: process.env.NEXT_PUBLIC_OPEN_AI_API_KEY, apiUrl },
     google: {
-      googleApiKey: googleApiKey,
-      googleCxId: cxId,
+      googleApiKey: NEXT_PUBLIC_GOOGLE_API_KEY,
+      googleCxId: NEXT_PUBLIC_GOOGLE_CX_ID,
     },
   }
 
