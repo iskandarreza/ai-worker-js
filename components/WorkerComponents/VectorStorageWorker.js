@@ -1,9 +1,11 @@
 import { Box, Button, TextField } from '@mui/material'
 import { useState } from 'react'
 import { CollapsingPanelHeader } from './CollapsingPanelHeader'
+import { DynamicReactJson } from '../DynamicReactJson'
 
 export function VectorStorageWorkerComponent({ wrapper }) {
   const primaryText = 'Manual Input'
+  const [dbEntries, setDbEntries] = useState([])
 
   const [open, setOpen] = useState(false)
   const [inputData, setInputData] = useState({
@@ -23,7 +25,6 @@ export function VectorStorageWorkerComponent({ wrapper }) {
     }
     setInputData(input)
 
-    console.log(input)
     const allPropsNotEmpty = Object.values(input).every((prop) => prop !== '')
     setIsValid(allPropsNotEmpty)
   }
@@ -43,11 +44,11 @@ export function VectorStorageWorkerComponent({ wrapper }) {
                 e.preventDefault()
 
                 if (isValid) {
-                  const results =
-                    await wrapper.comlink.vectorStore.similaritySearch(
-                      inputData
-                    )
-                  console.log(results)
+                  await wrapper.comlink
+                    .similaritySearch(inputData)
+                    .then((results) => {
+                      setDbEntries(results.similarItems)
+                    })
                 }
               }}
             >
@@ -95,7 +96,13 @@ export function VectorStorageWorkerComponent({ wrapper }) {
                   name="filterOptions"
                   fullWidth
                   label="Filter Options"
-                  defaultValue={JSON.stringify({ category: 'web_search' })}
+                  defaultValue={JSON.stringify({
+                    include: {
+                      metadata: {
+                        category: 'scraped_data',
+                      },
+                    },
+                  })}
                   variant="standard"
                 />
               </Box>
@@ -107,6 +114,18 @@ export function VectorStorageWorkerComponent({ wrapper }) {
               </Box>
             </form>
           </Box>
+        ) : (
+          ''
+        )}
+        {dbEntries.length > 0 ? (
+          <>
+            <DynamicReactJson
+              name={'Data Array'}
+              src={dbEntries}
+              theme={'rjv-default'}
+              collapsed
+            />
+          </>
         ) : (
           ''
         )}

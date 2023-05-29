@@ -7,19 +7,20 @@ self.onmessage = function (event) {
 
     Object.keys(self.channels).forEach((key) => {
       const channel = self.channels[key]
-      channel.postMessage({ type: 'Hello', payload: 'from Token Counter Worker' })
+      channel.postMessage({
+        type: 'Hello',
+        payload: 'from Token Counter Worker',
+      })
 
       channel.onmessage = function (event) {
         const { type, payload } = event.data
 
         switch (type) {
           case 'countTokens':
-
             channel.postMessage({
               type: 'countTokenResults',
               payload: countTokens(payload),
             })
-
 
             break
 
@@ -37,5 +38,5 @@ function countTokens(text) {
 }
 
 expose({
-  countTokens
+  countTokens,
 })

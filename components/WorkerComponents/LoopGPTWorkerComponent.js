@@ -131,7 +131,7 @@ export function LoopGPTWorkerComponent({ wrapper }) {
               flex: 1,
             }}
             onClick={() => {
-              console.log({ workerState, workerConfigState })
+              console.info({ workerState, workerConfigState })
               downloadJsonData(workerState.state)
             }}
           >
@@ -150,7 +150,7 @@ export function LoopGPTWorkerComponent({ wrapper }) {
               workerState.waitForResponse
             }
             onClick={() => {
-              console.log({ workerState, workerConfigState })
+              console.info({ workerState, workerConfigState })
               wrapper.worker.postMessage({
                 type: 'chat',
                 payload: {

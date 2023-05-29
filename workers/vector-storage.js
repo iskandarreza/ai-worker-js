@@ -11,32 +11,44 @@ self.onmessage = function (event) {
 
     Object.keys(self.channels).forEach((key) => {
       const channel = self.channels[key]
-      channel.postMessage({ type: 'Hello', payload: 'from Vector Storage Worker' })
+      channel.postMessage({
+        type: 'Hello',
+        payload: 'from Vector Storage Worker',
+      })
 
       channel.onmessage = function (event) {
         const { type, payload } = event.data
 
         switch (type) {
           case 'vectorSearch':
-            console.log({ type, payload })
-            vectorStore
-              .similaritySearch({
-                query: payload.query,
-                k: payload.k,
-                filterOptions: {
-                  metadata: { category: payload.category },
-                },
+            similaritySearch({
+              query: payload.query,
+              k: payload.k,
+              filterOptions: {
+                metadata: { category: payload.category },
+              },
+            }).then((results) => {
+              channel.postMessage({
+                type: 'vectorSearchResults',
+                payload: results,
               })
-              .then((results) => {
-                console.log({ results })
-
-                channel.postMessage({
-                  type: 'vectorSearchResults',
-                  payload: results,
-                })
-              })
+            })
 
             break
+
+          case 'addTexts':
+            addTexts(payload)
+              .then(() => {
+                channel.postMessage({
+                  type: 'addTextsSuccess',
+                })
+              })
+              .catch((e) => {
+                channel.postMessage({
+                  type: 'addTextsError',
+                  payload: e,
+                })
+              })
 
           default:
             break
@@ -46,6 +58,33 @@ self.onmessage = function (event) {
   }
 }
 
+async function similaritySearch({ query, k, filterOptions }) {
+  const results = await vectorStore.similaritySearch({
+    query,
+    k,
+    filterOptions,
+  })
+  return results
+}
+
+async function addText({ text, metadata }) {
+  const results = await vectorStore.addText(text, metadata).then(() => {
+    return 'Data added to vectorStore'
+  })
+
+  return results
+}
+
+async function addTexts({ texts, metadatas }) {
+  const results = await vectorStore.addTexts(texts, metadatas).then(() => {
+    return 'Data added to vectorStore'
+  })
+
+  return results
+}
+
 expose({
-  vectorStore,
+  similaritySearch,
+  addText,
+  addTexts,
 })

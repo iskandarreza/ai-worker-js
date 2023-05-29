@@ -1,9 +1,11 @@
 import { Box, Button, TextField } from '@mui/material'
 import { useState } from 'react'
 import { CollapsingPanelHeader } from './CollapsingPanelHeader'
+import { DynamicReactJson } from '../DynamicReactJson'
 
 export function WebSearchWorkerComponent({ wrapper }) {
   const primaryText = 'Manual Input'
+  const [searchResults, setSearchResults] = useState([])
 
   const [open, setOpen] = useState(false)
   const [inputData, setInputData] = useState({
@@ -21,7 +23,6 @@ export function WebSearchWorkerComponent({ wrapper }) {
     }
     setInputData(input)
 
-    console.log(input)
     const allPropsNotEmpty = Object.values(input).every((prop) => prop !== '')
     setIsValid(allPropsNotEmpty)
   }
@@ -41,12 +42,11 @@ export function WebSearchWorkerComponent({ wrapper }) {
                 e.preventDefault()
 
                 if (isValid) {
-                  const results = await wrapper.comlink.search({
+                  const results = await wrapper.comlink.googleSearch({
                     query: inputData.query,
-                    k: inputData.numResults,
+                    numResults: inputData.numResults,
                   })
-
-                  console.log(results)
+                  setSearchResults(results)
                 }
               }}
             >
@@ -76,18 +76,45 @@ export function WebSearchWorkerComponent({ wrapper }) {
                   name="numResults"
                   label="Num Results"
                   type="number"
-                  defaultValue={3}
+                  defaultValue={10}
                   variant="standard"
                 />
               </Box>
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  variant="outlined"
+                  type="button"
+                  disabled={!isValid}
+                  onClick={async (e) => {
+                    const results = await wrapper.comlink.searchPastQueries({
+                      query: inputData.query,
+                      k: inputData.numResults,
+                    })
+
+                    setSearchResults(results)
+                  }}
+                >
+                  Query DB
+                </Button>
                 <Button variant="outlined" type="submit" disabled={!isValid}>
-                  Query
+                  Search Web
                 </Button>
               </Box>
             </form>
           </Box>
+        ) : (
+          ''
+        )}
+        {searchResults.length > 0 ? (
+          <>
+            <DynamicReactJson
+              name={'Data Array'}
+              src={searchResults}
+              theme={'rjv-default'}
+              collapsed
+            />
+          </>
         ) : (
           ''
         )}

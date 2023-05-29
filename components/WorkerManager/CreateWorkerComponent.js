@@ -92,8 +92,8 @@ export function CreateWorkerComponent() {
           {
             channels: {
               webSearch: portVectorToWebSearch,
-              webScraper: portVectorToScraper
-            }
+              webScraper: portVectorToScraper,
+            },
           },
           [portVectorToWebSearch, portVectorToScraper]
         )
@@ -109,8 +109,8 @@ export function CreateWorkerComponent() {
           {
             channels: {
               vectorStore: portScraperToVector,
-              tokenCounter: portScraperToTokenCounter
-            }
+              tokenCounter: portScraperToTokenCounter,
+            },
           },
           [portScraperToVector, portScraperToTokenCounter]
         )

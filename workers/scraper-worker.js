@@ -1,4 +1,5 @@
 import { expose } from 'comlink'
+import { delegateToWorker } from '../utils/delegateToWorker'
 
 self.onmessage = function (event) {
   if (event.data.channels) {
@@ -6,7 +7,7 @@ self.onmessage = function (event) {
     Object.keys(self.channels).forEach((key) => {
       const channel = self.channels[key]
       channel.postMessage({ type: 'Hello', payload: 'from Web Scraper Worker' })
-      channel.onmessage = (e) => { } // weirdness, if this is not here, `countTokens` stops working
+      channel.onmessage = (e) => {} // weirdness, if this is not here, `countTokens` stops working
     })
   }
 }
@@ -26,38 +27,15 @@ const scrapeWebPageAPI = async (url, selector) => {
   }
 }
 
-async function countTokens(text) {
-  return new Promise((resolve, reject) => {
-    const messageHandler = (event) => {
-      if (event.data.type === 'countTokenResults') {
-        const tokenCount = event.data.payload
-        resolve(tokenCount)
-        cleanup()
-      }
-    }
-
-    self.channels.tokenCounter.addEventListener('message', messageHandler)
-
-    self.channels.tokenCounter.postMessage({
-      type: 'countTokens',
-      payload: text,
-    })
-
-    // Clean up the event listener after receiving the response
-    const cleanup = () => {
-      self.channels.tokenCounter.removeEventListener('message', messageHandler)
-    }
-
-    // Set a timeout to handle cases where no response is received
-    const timeout = setTimeout(() => {
-      cleanup()
-      reject(new Error('Timeout: No response received.'))
-    }, 15000)
-  })
-}
-
 async function scrape(url, selector = 'p, pre', maxTokens = 1000) {
   const { result } = await scrapeWebPageAPI(url, selector)
+  const countTokens = async (text) =>
+    await delegateToWorker({
+      channel: self.channels.tokenCounter,
+      request: 'countTokens',
+      params: text,
+      listenEvent: 'countTokenResults',
+    })
 
   const selectors = selector.split(',')
 
@@ -68,38 +46,50 @@ async function scrape(url, selector = 'p, pre', maxTokens = 1000) {
     return []
   }
 
-  let totalTokenCount = 0
-  let combinedTexts = []
-  let currentText = ''
+  const cssRegex = /\.css-[a-zA-Z0-9_-]+\{[^{}]*\}(?!\s*\n)/g
+
+  const combinedTexts = []
 
   for (const sel of selectors) {
-    const texts = result[sel]
+    const trimmedSelector = sel.trim()
+    const texts = result[trimmedSelector]
 
     if (!texts || texts.length === 0) {
       continue
     }
 
+    let totalTokenCount = 0
+    let currentText = ''
+
     for (const text of texts) {
-      const newTokenCount = await countTokens(currentText + text)
+      const cleanedText = text.replace(cssRegex, '')
+      const newTokenCount = await countTokens(currentText + cleanedText)
 
       if (newTokenCount > maxTokens) {
-        combinedTexts.push({ currentText: currentText.trim(), totalTokenCount })
-        currentText = text + ' '
+        combinedTexts.push({
+          text: currentText.trim(),
+          totalTokenCount,
+          selector: trimmedSelector,
+        })
+        currentText = cleanedText + ' '
         totalTokenCount = await countTokens(text)
       } else {
-        currentText += text + ' '
+        currentText += cleanedText + ' '
         totalTokenCount = newTokenCount
       }
     }
-  }
 
-  if (currentText.trim().length > 0) {
-    combinedTexts.push({ currentText: currentText.trim(), totalTokenCount })
+    if (currentText.trim().length > 0) {
+      combinedTexts.push({
+        text: currentText.trim(),
+        totalTokenCount,
+        selector: trimmedSelector,
+      })
+    }
   }
 
   return combinedTexts
 }
-
 
 expose({
   scrape: async ({ url, selector, maxTokens }) => {
