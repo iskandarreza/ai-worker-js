@@ -2,15 +2,8 @@ import { Box, Button, TextField } from '@mui/material'
 import { useState } from 'react'
 import { CollapsingPanelHeader } from './CollapsingPanelHeader'
 import { DynamicReactJson } from '../DynamicReactJson'
-import { store } from '../../store/store'
-
-export function getSystemWorkers() {
-  const state = store.getState((state) => state)
-  const { workerStates } = state
-  const { workerRegistry } = workerStates
-
-  return workerRegistry.filter((worker) => worker.type === 'system-worker')
-}
+import { getSystemWorkers } from '../../utils/getSystemWorkers'
+import { splitArray } from '../../utils/splitArray'
 
 export function ScraperWorkerComponent({ wrapper }) {
   const primaryText = 'Manual Input'
@@ -124,20 +117,9 @@ export function ScraperWorkerComponent({ wrapper }) {
                       }
                     )
 
-                    function splitArray(array) {
-                      const texts = []
-                      const metadatas = []
-
-                      for (let i = 0; i < array.length; i++) {
-                        texts.push(array[i].text)
-                        metadatas.push(array[i].metadata)
-                      }
-
-                      return [texts, metadatas]
-                    }
-
                     const [texts, metadatas] = splitArray(preparedData)
-                    const [vectorStore] = getSystemWorkers().filter(
+                    const systemWorkers = await getSystemWorkers()
+                    const [vectorStore] = systemWorkers.filter(
                       (worker) => worker.name === 'vector-storage'
                     )
 

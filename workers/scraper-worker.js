@@ -27,8 +27,9 @@ const scrapeWebPageAPI = async (url, selector) => {
   }
 }
 
-async function scrape(url, selector = 'p, pre', maxTokens = 1000) {
-  const { result } = await scrapeWebPageAPI(url, selector)
+async function scrape(url, selector, maxTokens = 1000) {
+  let _selector = !!selector ? selector : 'p, pre'
+  const { result } = await scrapeWebPageAPI(url, _selector)
   const countTokens = async (text) =>
     await delegateToWorker({
       channel: self.channels.tokenCounter,
@@ -37,7 +38,7 @@ async function scrape(url, selector = 'p, pre', maxTokens = 1000) {
       listenEvent: 'countTokenResults',
     })
 
-  const selectors = selector.split(',')
+  const selectors = _selector.split(',')
 
   const validSelector = selectors.some((sel) => result && result[sel])
 
@@ -92,7 +93,7 @@ async function scrape(url, selector = 'p, pre', maxTokens = 1000) {
 }
 
 expose({
-  scrape: async ({ url, selector, maxTokens }) => {
+  scrape: async ({ url, selector, maxTokens = 1000 }) => {
     const results = await scrape(url, selector, maxTokens)
     let totalTokenCount = 0
     for (let i = 0; i < results.length; i++) {

@@ -1,13 +1,15 @@
-import { Box, Grid, Paper } from '@mui/material'
+import { Box, Grid } from '@mui/material'
 import { AgentResponsesList } from './MessageComponent/AgentResponsesList'
 import { WorkerManagerComponent } from './WorkerManager/WorkerManagerComponent'
+import { LooperAgentComponent } from './Agents/LooperAgentComponent'
 
 export function Home() {
   return (
     <Grid container height={'95vh'}>
-      {/* <Grid item xs={12}>
+      <Grid item xs={12}>
         <h4>Hello!</h4>
-      </Grid> */}
+        <LooperAgentComponent />
+      </Grid>
       <Grid container item xs={12} sx={{ height: '80vh' }}>
         <Grid item xs={6}>
           <Box sx={{ padding: '0 16px' }}>
