@@ -48,6 +48,7 @@ export function VectorStorageWorkerComponent({ wrapper }) {
                     .similaritySearch(inputData)
                     .then((results) => {
                       setDbEntries(results.similarItems)
+                      console.debug('similaritySearch', results.similarItems)
                     })
                 }
               }}

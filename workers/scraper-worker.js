@@ -27,16 +27,9 @@ const scrapeWebPageAPI = async (url, selector) => {
   }
 }
 
-async function scrape(url, selector, maxTokens = 1000) {
+async function scrape(url, selector, maxTokens = 400) {
   let _selector = !!selector ? selector : 'p, pre'
   const { result } = await scrapeWebPageAPI(url, _selector)
-  const countTokens = async (text) =>
-    await delegateToWorker({
-      channel: self.channels.tokenCounter,
-      request: 'countTokens',
-      params: text,
-      listenEvent: 'countTokenResults',
-    })
 
   const selectors = _selector.split(',')
 
@@ -50,6 +43,7 @@ async function scrape(url, selector, maxTokens = 1000) {
   const cssRegex = /\.css-[a-zA-Z0-9_-]+\{[^{}]*\}(?!\s*\n)/g
 
   const combinedTexts = []
+  let currentIndex = 0
 
   for (const sel of selectors) {
     const trimmedSelector = sel.trim()
@@ -67,13 +61,21 @@ async function scrape(url, selector, maxTokens = 1000) {
       const newTokenCount = await countTokens(currentText + cleanedText)
 
       if (newTokenCount > maxTokens) {
-        combinedTexts.push({
-          text: currentText.trim(),
-          totalTokenCount,
-          selector: trimmedSelector,
-        })
+        const splitTexts = await splitTextIntoChunks(
+          currentText,
+          maxTokens,
+          currentIndex
+        )
+        for (const splitText of splitTexts) {
+          combinedTexts.push({
+            text: splitText.text.trim(),
+            totalTokenCount: splitText.totalTokenCount,
+            selector: trimmedSelector,
+            index: splitText.index,
+          })
+        }
+        currentIndex += splitTexts.length
         currentText = cleanedText + ' '
-        totalTokenCount = await countTokens(text)
       } else {
         currentText += cleanedText + ' '
         totalTokenCount = newTokenCount
@@ -85,15 +87,76 @@ async function scrape(url, selector, maxTokens = 1000) {
         text: currentText.trim(),
         totalTokenCount,
         selector: trimmedSelector,
+        index: currentIndex,
       })
+      currentIndex++
     }
   }
 
   return combinedTexts
 }
 
+async function splitTextIntoChunks(text, maxTokens, startIndex) {
+  const punctuationRegex = /[.!?\n]/g
+  const chunks = []
+  let currentChunk = ''
+  let currentIndex = startIndex
+
+  const sentences = text.split(punctuationRegex)
+
+  for (const sentence of sentences) {
+    const chunkWithSentence = currentChunk ? currentChunk + sentence : sentence
+    const chunkTokenCount = await countTokens(chunkWithSentence)
+
+    if (chunkTokenCount > maxTokens) {
+      let overlap = 40 + Math.floor(Math.random() * 41) // Random overlap between 40 and 80 tokens
+      let remainingTokens = chunkTokenCount
+
+      while (remainingTokens > maxTokens) {
+        const splitText = chunkWithSentence.substring(0, maxTokens + overlap)
+        const trimmedSplitText = splitText.trim()
+        const splitTokenCount = await countTokens(trimmedSplitText)
+
+        chunks.push({
+          text: trimmedSplitText,
+          totalTokenCount: splitTokenCount,
+          index: currentIndex,
+        })
+
+        currentIndex++
+        currentChunk = chunkWithSentence
+          .substring(splitText.length - overlap)
+          .trim()
+        remainingTokens = await countTokens(currentChunk)
+      }
+    } else {
+      currentChunk = chunkWithSentence.trim() + ' '
+    }
+    currentIndex++
+  }
+
+  if (currentChunk) {
+    chunks.push({
+      text: currentChunk.trim(),
+      totalTokenCount: await countTokens(currentChunk),
+      index: currentIndex,
+    })
+  }
+
+  return chunks
+}
+
+async function countTokens(text) {
+  return await delegateToWorker({
+    channel: self.channels.tokenCounter,
+    request: 'countTokens',
+    params: text,
+    listenEvent: 'countTokenResults',
+  })
+}
+
 expose({
-  scrape: async ({ url, selector, maxTokens = 1000 }) => {
+  scrape: async ({ url, selector, maxTokens = 400 }) => {
     const results = await scrape(url, selector, maxTokens)
     let totalTokenCount = 0
     for (let i = 0; i < results.length; i++) {

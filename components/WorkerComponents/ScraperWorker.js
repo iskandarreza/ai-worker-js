@@ -13,7 +13,7 @@ export function ScraperWorkerComponent({ wrapper }) {
   const [inputData, setInputData] = useState({
     url: '',
     selector: 'p, pre',
-    maxTokens: 3072,
+    maxTokens: 400,
   })
   const [isValid, setIsValid] = useState(false)
 

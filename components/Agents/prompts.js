@@ -29,24 +29,24 @@ export const DEFAULT_RESPONSE_FORMAT = `Provide response in JSON format below wi
 ${typedef}`
 
 export const INIT_PROMPT = `Do the following:
-1. Execute next best command to achieve goals.
-2. Execute 'doNothing' command if no other command available.
-3. ${DEFAULT_RESPONSE_FORMAT}
+\n- Execute next best command to achieve goals.
+\n- Execute 'doNothing' command if no other command available.
+\n- ${DEFAULT_RESPONSE_FORMAT}
 `
 
 export const NEXT_PROMPT = `INSTRUCTIONS:
-1. Check goal progress.
-2. If all goals achieved, execute "taskComplete" command IMMEDIATELY. Otherwise,
-3. Plan next command based on previous responses to work towards goals.
-4. Use available commands only.
-5. Aim for minimal steps as commands are expensive.
-6. Confirm execution only if system acknowledges.
-7. Don't assume execution based on plan.
-8. Save useful info to a file if applicable.
-9. Utilize long-term memory instead of reanalyzing.
-10. Execute "doNothing" ONLY if no other command available.
-11. Ensure supported arguments for commands.
-12. Select alternative command if unavailable.
+\n- Check goal progress.
+\n- If all goals achieved, execute "taskComplete" command IMMEDIATELY. Otherwise,
+\n- Plan next command based on previous responses to work towards goals.
+\n- Use available commands only.
+\n- Aim for minimal steps as commands are expensive.
+\n- Confirm execution only if system acknowledges.
+\n- Don't assume execution based on plan.
+\n- Save useful info to a file if applicable.
+\n- Utilize long-term memory instead of reanalyzing.
+\n- Execute "doNothing" ONLY if no other command available.
+\n- Ensure supported arguments for commands.
+\n- Select alternative command if unavailable.
 
 ${DEFAULT_RESPONSE_FORMAT}
 `
