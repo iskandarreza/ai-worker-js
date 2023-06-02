@@ -107,8 +107,11 @@ export function LoopGPTWorkerComponent({ wrapper }) {
             primary={
               !workerState.waitForResponse
                 ? 'Ready'
-                : `Waiting for response... ${typeof wrapper.cycle !== 'undefined' ? `cycle ${wrapper.cycle + 1}` : ''
-                }`
+                : `Waiting for response... ${
+                    typeof wrapper.cycle !== 'undefined'
+                      ? `cycle ${wrapper.cycle + 1}`
+                      : ''
+                  }`
             }
             primaryTypographyProps={{
               fontSize: '1em',
@@ -128,7 +131,7 @@ export function LoopGPTWorkerComponent({ wrapper }) {
               flex: 1,
             }}
             onClick={() => {
-              console.log({ workerState, workerConfigState })
+              console.info({ workerState, workerConfigState })
               downloadJsonData(workerState.state)
             }}
           >
@@ -147,7 +150,7 @@ export function LoopGPTWorkerComponent({ wrapper }) {
               workerState.waitForResponse
             }
             onClick={() => {
-              console.log({ workerState, workerConfigState })
+              console.info({ workerState, workerConfigState })
               wrapper.worker.postMessage({
                 type: 'chat',
                 payload: {
@@ -201,13 +204,13 @@ export function LoopGPTWorkerComponent({ wrapper }) {
                 >
                   {workerState.waitForResponse
                     ? `Running command: ${JSON.stringify(
-                      workerState.state.staging_tool
-                    )}`
-                    : workerState.state?.staging_tool?.name !== 'task_complete'
-                      ? `Run next command: ${JSON.stringify(
                         workerState.state.staging_tool
                       )}`
-                      : 'No command to run next'}
+                    : workerState.state?.staging_tool?.name !== 'task_complete'
+                    ? `Run next command: ${JSON.stringify(
+                        workerState.state.staging_tool
+                      )}`
+                    : 'No command to run next'}
                 </ListItemButton>
               ) : (
                 ''

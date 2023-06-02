@@ -1,3 +1,4 @@
+const Dotenv = require('dotenv-webpack')
 const path = require('path')
 const fs = require('fs')
 
@@ -19,8 +20,16 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: ['.worker.js'],
+    extensions: ['.worker.js', '.js', '.d.ts'],
+    fallback: {
+      path: require.resolve('path-browserify'),
+    },
   },
+  plugins: [
+    new Dotenv({
+      path: './.env.local',
+    }),
+  ],
 }
 
 function getEntryPoints(directory) {
