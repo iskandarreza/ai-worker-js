@@ -51,6 +51,7 @@ export function LooperAgentComponent() {
     .join('\n')}`
 
   // Provides prompt strings to compose messages to send to chat completion for context
+  // TODO: Maybe roll this into the ConversationManager and have it accept a config object with the optional params as props 
   const promptProvider = {
     header: {
       system: {
@@ -69,6 +70,7 @@ export function LooperAgentComponent() {
       },
     },
     nextPrompt: {
+      system: () => { throw Error('Not implemented') },
       user: (
         compact = false,
         str = NEXT_PROMPT,
@@ -77,7 +79,7 @@ export function LooperAgentComponent() {
     },
   }
 
-  const cycleManager = new CycleManager(promptProvider, 18)
+  const cycleManager = new CycleManager(promptProvider, tools, 18)
 
   const handleClick = async () => {
     await cycleManager.startCycle(0.2, setLastResponse)

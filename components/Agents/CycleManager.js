@@ -8,9 +8,11 @@ import {
 
 // TODO: This class is still complicated, figure out how to simplify it and/or decompose into different domains
 export class CycleManager {
-  constructor(promptProvider, maxCycles) {
+  constructor(promptProvider, tools, maxCycles) {
     const tokenManager = new TokenManager()
     const conversationManager = new ConversationManager(promptProvider)
+    const conversationSummarizer = conversationManager.summarize
+
 
     this.cycle = 0
     this.maxCycles = maxCycles || 18
@@ -61,6 +63,7 @@ export class CycleManager {
         }
       }
 
+      // TODO: Let CnversationManager build this message
       let toolResponseStr
       if (typeof toolResponse === 'string' || toolResponse instanceof String) {
         toolResponseStr = toolResponse
@@ -100,7 +103,9 @@ export class CycleManager {
 
       if (messages) {
         // remove old instructions
-        messages = conversationManager.clearUserMessages(messages)
+        // messages = conversationManager.clearUserMessages(messages)
+        messages = ConversationManager.clearUserMessages(messages)
+
 
         console.info(
           `Resuming from last conversation. Tokens left: ${await tokenManager.tokenBalance(
@@ -108,7 +113,9 @@ export class CycleManager {
           )}`
         )
         return this.continueCycle(messages, 0, 0.1)
+
       } else {
+        // Move to ConversationManager?
         const headers = promptProvider.header.system
         const { persona, goals, tools } = headers
         messages = [
@@ -124,11 +131,13 @@ export class CycleManager {
       }
 
       try {
-        if (
-          (await tokenManager.isWithinLimit('messages', messages)) === false
-        ) {
+        // Maybe move to ConversationManager?
+        const isWithinLimit = await tokenManager.isWithinLimit('messages', messages)
+        let tokenBalance = await tokenManager.tokenBalance(messages)
+
+        if (!isWithinLimit) {
           const summarizedHeader =
-            await conversationManager.summarizeConversation(messages)
+            await conversationSummarizer(messages, tokenBalance)
 
           messages = summarizedHeader
 
@@ -142,12 +151,12 @@ export class CycleManager {
           JSON.stringify(messages)
         )
         await tokenManager.updateTokenUsage('messages', startTokens)
+        // TODO: tokenBalance should be updated automatically everytime updateTokenUsage is called
+        tokenBalance = await tokenManager.tokenBalance(messages)
         console.log({ tokenUsage: tokenManager.tokenUsage })
 
         console.info(
-          `Starting cycle with ${await tokenManager.tokenBalance(
-            messages
-          )} tokens left`
+          `Starting cycle with ${tokenBalance} tokens left`
         )
 
         const startResponse = await this.getResponse({ messages, temperature })
@@ -174,12 +183,15 @@ export class CycleManager {
     throws an error. */
     this.continueCycle = async (_messages, temperature) => {
       // Filter out previous instructions to reduce token cost, we'll reinsert later at the end to keep it fresh
-      let messages = conversationManager.clearUserMessages(_messages)
+      let messages = await ConversationManager.clearUserMessages(_messages)
 
       // Check if messages token count is greater than limit for next responses
-      console.info(`Tokens left: ${await tokenManager.tokenBalance(messages)}`)
-      if (await tokenManager.isWithinLimit('messages', messages)) {
-        messages = await conversationManager.summarizeConversation(messages)
+      const tokenBalance = await tokenManager.tokenBalance(messages)
+      const isWithinLimit = await tokenManager.isWithinLimit('messages', messages)
+      console.info(`Tokens left: ${tokenBalance}, is within limit: ${isWithinLimit}`)
+
+      if (!isWithinLimit) {
+        messages = await new ConversationManager(promptProvider).summarize(messages, tokenBalance)
         console.info(
           `New context token count: ${await tokenManager.countTokens(
             JSON.stringify(messages)
@@ -191,6 +203,7 @@ export class CycleManager {
 
       const nextUserMessage = promptProvider.nextPrompt.user
 
+      // Potentially move to ConversationManager
       let nextPrompt = {
         role: 'user',
         content: nextUserMessage(),
@@ -200,12 +213,14 @@ export class CycleManager {
       )
 
       let cycleTokens
-      if (finalTokenCount <= tokenManager.limits.global + 200) {
+
+      // Untangle and move to TokenManager and ConversationManager?
+      if (finalTokenCount <= tokenManager.limits.global + 500) {
         messages.push(nextPrompt)
 
         cycleTokens = await tokenManager.countTokens(JSON.stringify(messages))
         await tokenManager.updateTokenUsage('messages', cycleTokens)
-      } else if (finalTokenCount - tokenManager.limits.global <= 500) {
+      } else if (finalTokenCount <= tokenManager.limits.global) {
         // send just the expected response format if the usual nextPrompt will break the bank
         nextPrompt.content = nextUserMessage(true)
         messages.push(nextPrompt)
@@ -255,7 +270,7 @@ export class CycleManager {
       while (retryCount < maxRetryCount) {
         const response = await completePrompt({
           messages: messages,
-          max_tokens: await tokenManager.tokenBalance(messages),
+          max_tokens: 1000,
           temperature: temperature,
         })
 
@@ -315,7 +330,7 @@ export class CycleManager {
         if (response.command?.name) {
           const actionResults = await this.actionCycle(
             response.command,
-            cycle
+            this.cycle
           )
 
           if (actionResults.toolname === 'taskComplete') {
@@ -343,6 +358,7 @@ export class CycleManager {
           console.error('Max cycles reached')
           // Save history to resume later
           storeArrayInLocalStorage('messageHistory', messages)
+          response = false
           break
         }
       }

@@ -2,7 +2,7 @@ import { getSystemWorkers } from '../../utils/getSystemWorkers'
 
 export class TokenManager {
   constructor(
-    config = { limits: { global: 3800, messages: 1200, actionResults: 800 } }
+    config = { limits: { global: 3000, messages: 1200, actionResults: 800 } }
   ) {
     this.limits = {
       global: config.limits.global,
@@ -61,14 +61,13 @@ export class TokenManager {
       switch (type) {
         case 'messages':
           return (
-            this.limits.global -
-              (await this.countTokens(JSON.stringify(data))) >
+            (await this.countTokens(JSON.stringify(data))) <=
             this.limits.messages
           )
 
-        case 'messages':
+        case 'actions':
           return (
-            (await this.countTokens(JSON.stringify(data))) >
+            (await this.countTokens(JSON.stringify(data))) <=
             this.limits.actionResults
           )
 
