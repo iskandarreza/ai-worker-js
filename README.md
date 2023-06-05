@@ -37,3 +37,11 @@ Yes, but so is an automated LLM agent tasked with semi-complex multi-cycle goals
 ##### What advantages are there to using web workers?
 
 The token counting and the pyodide python shell can be pretty heavy, if it runs in the main thread it can block things, causes lagginess and unresponsiveness. Running those in a separate worker thread significantly improves the experience. The main `while` loop of all these autonomous agents can also run for a long time so putting them in a seperate thread frees up the main thread to respond to other events, such as responses from another autonomous agent (haven't tested this idea yet, it's in the works)
+
+#### Start instructions:
+1. `npm install` (install all dependencies)
+2. `npm build:workers` (compile the web workers)
+3. `npm dev` (start the dev server at http://localhost:3000/)
+
+Note: This rewritten agent branch does not run in a web worker but it currently is a React component activated by a "TEST" button, initial configuration is currently hardcoded mostly in `components/Agents/LooperAgentComponent.js` and `components/Agents/TokenManager.js`, and to a lesser extent, `components/Agents/CycleManager.js` and `components/Agents/ConversationManager.js`.
+Next plan: Decouple the Agent from the component, package it and its associated files into an alias, and eventually it's own NPM package.
