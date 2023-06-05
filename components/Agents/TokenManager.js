@@ -2,7 +2,7 @@ import { getSystemWorkers } from '../../utils/getSystemWorkers'
 
 export class TokenManager {
   constructor(
-    config = { limits: { global: 3000, messages: 1200, actionResults: 800 } }
+    config = { limits: { global: 3000, messages: 1200, actionResults: 800 } },
   ) {
     this.limits = {
       global: config.limits.global,
@@ -41,20 +41,10 @@ export class TokenManager {
     }
     this.resetUsage = () => {
       this.tokenUsage.messages = 0
-      this.tokenUsage.messages = 0
+      this.tokenUsage.actionResults = 0
     }
-    this.tokenBalance = async (messages) => {
-      if (Array.isArray(messages)) {
-        return (
-          this.limits.global -
-          (await this.countTokens(JSON.stringify(messages)))
-        )
-      } else if (typeof messages === 'string' || messages instanceof String) {
-        return this.limits.global - (await this.countTokens(messages))
-      } else {
-        console.debug('Unrecognized input: ', { messages })
-        throw Error('Unrecognized input')
-      }
+    this.tokenBalance = () => {
+      return this.limits.global - (this.tokenUsage.messages + this.tokenUsage.actionResults)
     }
     this.isWithinLimit = async (type, data) => {
       switch (type) {
