@@ -23,7 +23,6 @@ export class TokenManager {
 
       return tokenCount
     }
-
     this.updateTokenUsage = async (type, tokens) => {
       switch (type) {
         case 'messages':

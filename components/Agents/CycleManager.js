@@ -103,7 +103,6 @@ export class CycleManager {
 
       if (messages) {
         // remove old instructions
-        // messages = conversationManager.clearUserMessages(messages)
         messages = ConversationManager.clearUserMessages(messages)
 
 
