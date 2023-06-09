@@ -1,14 +1,47 @@
 import { TokenManager } from './TokenManager'
 import { summarizeText } from './modelCompletion'
+import { DEFAULT_RESPONSE_FORMAT, INIT_PROMPT, NEXT_PROMPT } from './prompts'
 import { storeArrayInLocalStorage } from './shared'
 
-// Notes: Consider rolling promptProvider object into this class
 export class ConversationManager {
-  constructor(promptProvider, tokenManager) {
+  constructor(goals, tools, tokenManager) {
     this.tokenManager = tokenManager || new TokenManager()
     this.tokenLimit = this.tokenManager.limits.global || 4000
-    this.promptProvider = promptProvider
+    this.promptProvider = {
+      header: {
+        system: {
+          persona: (
+            name = 'Looper Generalized Autonomous Agent',
+            description = `a prototypical autonomous self-prompting, LLM AI assistant agent that reponds only in JSON, who seeks ways to improve it's capabilities while operating in the limiting environment of a webworker thread.`
+          ) =>
+            `You are ${name}, ${description}.\nThe current time and date is ${new Date().toLocaleString()}`,
+          goals: (strArr = goals) =>
+            `GOALS:\n${strArr.map((goal, i) => `${i + 1}. ${goal}`).join('\n')}`,
+          tools: (toolsArr = tools) => `You have access to the following tools:\n${Object.keys(
+            toolsArr
+          )
+            .map((toolname) => {
+              const { description, args } = toolsArr[toolname]
+              return `${toolname}: ${description} - args: ${args}`
+            })
+            .join('\n')}`,
+        },
+        user: {
+          initMsg: (initMsg = INIT_PROMPT, specificInput = '') =>
+            `${initMsg}${specificInput ? `${specificInput}\n` : ''}`,
+        },
+      },
+      nextPrompt: {
+        system: () => { throw Error('Not implemented') },
+        user: (
+          compact = false,
+          str = NEXT_PROMPT,
+          responseFormat = DEFAULT_RESPONSE_FORMAT
+        ) => (compact ? responseFormat : str),
+      },
+    }
   }
+
 
   async generateToolResponseMsg(toolname, toolResponse) {
     let toolResponseStr

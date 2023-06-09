@@ -1,4 +1,3 @@
-import { DEFAULT_RESPONSE_FORMAT, INIT_PROMPT, NEXT_PROMPT } from './prompts'
 import { Button } from '@mui/material'
 import { useState } from 'react'
 import { DynamicReactJson } from '../DynamicReactJson'
@@ -40,46 +39,7 @@ export function LooperAgentComponent() {
     webScraperWorker: webScraperWorker,
     sendReport: sendReport,
   }
-
-  const toolsInfo = `You have access to the following tools:\n${Object.keys(
-    tools
-  )
-    .map((toolname) => {
-      const { description, args } = tools[toolname]
-      return `${toolname}: ${description} - args: ${args}`
-    })
-    .join('\n')}`
-
-  // Provides prompt strings to compose messages to send to chat completion for context
-  // TODO: Maybe roll this into the ConversationManager and have it accept a config object with the optional params as props 
-  const promptProvider = {
-    header: {
-      system: {
-        persona: (
-          name = 'Looper Generalized Autonomous Agent',
-          description = `a prototypical autonomous self-prompting, LLM AI assistant agent that reponds only in JSON, who seeks ways to improve it's capabilities while operating in the limiting environment of a webworker thread.`
-        ) =>
-          `You are ${name}, ${description}.\nThe current time and date is ${new Date().toLocaleString()}`,
-        goals: (strArr = goals) =>
-          `GOALS:\n${strArr.map((goal, i) => `${i + 1}. ${goal}`).join('\n')}`,
-        tools: (str = toolsInfo) => str,
-      },
-      user: {
-        initMsg: (initMsg = INIT_PROMPT, specificInput = '') =>
-          `${initMsg}${specificInput ? `${specificInput}\n` : ''}`,
-      },
-    },
-    nextPrompt: {
-      system: () => { throw Error('Not implemented') },
-      user: (
-        compact = false,
-        str = NEXT_PROMPT,
-        responseFormat = DEFAULT_RESPONSE_FORMAT
-      ) => (compact ? responseFormat : str),
-    },
-  }
-
-  const cycleManager = new CycleManager(promptProvider, tools, 18)
+  const cycleManager = new CycleManager(goals, tools, 18)
 
   const handleClick = async () => {
     await cycleManager.startCycle(0.2, setLastResponse)

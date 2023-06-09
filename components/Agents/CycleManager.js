@@ -8,9 +8,9 @@ import {
 
 // TODO: This class is still complicated, figure out how to simplify it and/or decompose into different domains
 export class CycleManager {
-  constructor(promptProvider, tools, maxCycles) {
+  constructor(goals, tools, maxCycles) {
     this.tokenManager = new TokenManager()
-    const conversationManager = new ConversationManager(promptProvider, this.tokenManager)
+    const conversationManager = new ConversationManager(goals, tools, this.tokenManager)
 
 
     this.cycle = 0
@@ -58,7 +58,7 @@ export class CycleManager {
             console.error(error)
           }
         } else {
-          toolResponse = `Tool "${toolname}" is not available. Currently available tools are:\n${toolsInfo.trim()}`
+          toolResponse = `Tool "${toolname}" is not available. ${conversationManager.promptProvider.header.system.tools(tools).trim()}`
         }
       }
 
