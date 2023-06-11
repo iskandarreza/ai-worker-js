@@ -14,7 +14,8 @@ export class CycleManager {
 
 
     this.cycle = 0
-    this.maxCycles = maxCycles || 18
+    this.maxCycles = maxCycles || 1
+    this.toolResponses = [] // saving the responses, maybe implement some way to use this to track progress 
     this.incrementCycle = () => {
       this.cycle++
     }
@@ -41,7 +42,7 @@ export class CycleManager {
       let toolResponse
 
       if (toolname === 'taskComplete') {
-        toolResponse = `Task completed in ${this.cycle} cycles.`
+        toolResponse = `Task completed in ${this.cycle + 1} cycle${this.cycle === 0 ? '' : 's'}.`
       } else if (toolname === 'doNothing') {
         toolResponse = 'Nothing done. '
       } else {
@@ -62,6 +63,8 @@ export class CycleManager {
         }
       }
 
+      this.toolResponses.push({ cycle: this.cycle, toolname, toolResponse })
+      console.log({ toolResponses: this.toolResponses })
       const toolResponseMessage = await conversationManager.generateToolResponseMsg(toolname, toolResponse)
 
       return {
@@ -96,7 +99,8 @@ export class CycleManager {
         return this.continueCycle(messages, 0, 0.1)
 
       } else {
-        messages = await conversationManager.newConversation()
+        messages = await conversationManager.generateSubTaskPrompt()
+        // messages = await conversationManager.newConversation()
       }
 
       try {
@@ -110,18 +114,24 @@ export class CycleManager {
           `Starting cycle with ${tokenBalance} tokens left`
         )
 
-        const startResponse = await this.getResponse({ messages, temperature })
+        const startResponse = await this.getResponse({ messages, temperature, maxTokens: tokenBalance })
         const responseObj = JSON.parse(startResponse)
-        const thoughts = !!responseObj.thoughts
-          ? responseObj.thoughts
-          : undefined
-        const command = !!responseObj.command ? responseObj.command : undefined
 
         return {
           messages,
-          thoughts,
-          command,
+          taskArray: responseObj
         }
+
+        // const thoughts = !!responseObj.thoughts
+        //   ? responseObj.thoughts
+        //   : undefined
+        // const command = !!responseObj.command ? responseObj.command : undefined
+
+        // return {
+        //   messages,
+        //   thoughts,
+        //   command,
+        // }
       } catch (error) {
         console.error(error)
       }
@@ -157,7 +167,7 @@ export class CycleManager {
     status is 429 (Too Many Requests), the function waits for 10 seconds and retries the
     request up to a maximum of 3 times. If the retry limit is exceeded, the function returns
     the last response. */
-    this.getResponse = async ({ messages, temperature }) => {
+    this.getResponse = async ({ messages, temperature, maxTokens }) => {
       function sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms))
       }
@@ -168,7 +178,7 @@ export class CycleManager {
       while (retryCount < maxRetryCount) {
         const response = await completePrompt({
           messages: messages,
-          max_tokens: 1000,
+          max_tokens: maxTokens || 1000,
           temperature: temperature,
         })
 
@@ -199,6 +209,7 @@ export class CycleManager {
 
       try {
         const startResponse = await this.initCycle(baseTemperature)
+        console.log({ startResponse })
 
         response = {
           thoughts: startResponse.thoughts,

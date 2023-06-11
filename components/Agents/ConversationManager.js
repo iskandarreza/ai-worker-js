@@ -40,6 +40,8 @@ export class ConversationManager {
         ) => (compact ? responseFormat : str),
       },
     }
+    // a more reliable method of recordkeeping than asking the LLM to send a report
+    this.summmaries = []
   }
 
 
@@ -67,6 +69,8 @@ export class ConversationManager {
   // TODO: create a dynamic summary response where max_tokens depends on the value of tokenBalance
   summarize = async (messages, tokenBalance) => {
     console.info('Summarizing conversation...')
+    let dataStore = {}
+    dataStore.messages = [...messages]
     const summaryResponse = async (messages, temperature = 0, maxTokens) => {
       const response = await summarizeText({
         model: 'text-davinci-003',
@@ -76,21 +80,6 @@ export class ConversationManager {
       })
       return response
     }
-
-    let toolResponseMessage = messages.find((msg) =>
-      msg.content.includes('tool results:')
-    )
-    const toolResponseTokens = await this.tokenManager.countTokens(JSON.stringify(toolResponseMessage))
-
-    if (toolResponseTokens > this.tokenManager.limits.actionResults) {
-      // handle situation
-      console.debug('tool response over limit', { toolResponseTokens })
-    }
-
-    const toolSummarySeparator = '\n\nThe last tool/action executed produced the following response:\n';
-    toolResponseMessage.content = toolResponseMessage.content.includes(toolSummarySeparator)
-      ? toolResponseMessage.content.split(toolSummarySeparator)[1]
-      : toolResponseMessage.content;
 
     const hasSummaryMessage = JSON.stringify(messages).includes(
       'Previous conversation history summarized'
@@ -111,12 +100,27 @@ export class ConversationManager {
       ]
       : [...messages]
 
+
+    function parseAssistantResponse(str) {
+      try {
+        const responseObj = JSON.parse(str)
+        const { thoughts, command } = responseObj
+        console.log({ thoughts })
+        return Object.keys(thoughts).map((key) => {
+          return `${key} - ${thoughts[key]}`
+        }).join('\n')
+      } catch (error) {
+        console.error(error.message)
+        return null
+      }
+    }
+
     const summaryRequestMsg = `Please summarize this conversation for me:\n${reconstructedMessages
       .map(
         (msg) =>
           `${msg.role}: ${msg.role !== 'assistant'
             ? `${msg.content.trim()}`
-            : `${(JSON.stringify(msg.content), null, 2)}`
+            : `${typeof parseAssistantResponse(msg.content) !== null ? parseAssistantResponse(msg.content) : ''}`
           }\n`
       )
       .join(
@@ -152,19 +156,16 @@ export class ConversationManager {
         .trim()}`,
     }
 
-    const toolsSummaryPrompt = {
-      role: 'system',
-      content: `${headers.tools()}${toolResponseMessage
-        ? `\n\nThe last tool/action executed produced the folowing response:\n${toolResponseMessage.content}`
-        : ''
-        }`,
-    }
-    messages = [summaryMsg, toolsSummaryPrompt]
+    messages = [summaryMsg]
 
     const summarizedTokenCount = await this.tokenManager.countTokens(JSON.stringify(messages))
     this.tokenManager.resetUsage()
     await this.tokenManager.updateTokenUsage('summarized', summarizedTokenCount)
     console.log({ summarizedTokenCount, tokenUsage: this.tokenManager.tokenUsage })
+
+    dataStore.summary = conversationSummary
+    this.summmaries.push(dataStore)
+    console.log({ summmaries: this.summmaries })
     return messages
   }
 
@@ -199,6 +200,42 @@ export class ConversationManager {
 
     console.log({ tokenBalance: this.tokenManager.tokenBalance(), tokenUsage: this.tokenManager.tokenUsage })
     return messages
+  }
+
+  async generateSubTaskPrompt() {
+    const headers = this.promptProvider.header.system
+    const { goals, tools } = headers
+
+    let subTaskPromptMessages = []
+    let subTaskSystemPrompt = [
+      'You are part of a larger system of self-instructing LLM agents tasked with a main goal to achieve.',
+      'Your role is that of a task analyzer agent that breaks down goals into subtask for other agents.',
+      'Each subtask can only have one action/tool/command.'
+
+    ]
+    const subTaskSystemMsg = {
+      role: 'system',
+      content: `${subTaskSystemPrompt.join('\n')}\n${tools()}\n${goals()}` // list of tools available (command, args), list of goals set (array of strings)
+    }
+    const typedef = `/**
+    * @typedef {Object} SubTaskItem
+    * @property {string} taskId - Unique identifier for the task
+    * @property {string} action - Command name
+    * @property {Object} args - Arguments for the command (key-value pairs)
+    * @property {string} reason - The reason for this subtask
+    * @property {string} request - The expected result
+    * @property {Array<string|null>} dependencies - array of taskId that needs to be completed, if any
+    */`
+
+    const subTaskUserMsg = {
+      role: 'user',
+      content: `Respond only with a JSON array of subtask objects with the following type definition with no additional commentary:\n${typedef}`
+    }
+
+    subTaskPromptMessages.push(subTaskSystemMsg)
+    subTaskPromptMessages.push(subTaskUserMsg)
+
+    return subTaskPromptMessages
   }
 
   async continueConversation(_messages) {

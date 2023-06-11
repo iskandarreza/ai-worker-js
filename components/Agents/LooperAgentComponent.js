@@ -29,9 +29,11 @@ import { CycleManager } from './CycleManager'
 export function LooperAgentComponent() {
   const [lastResponse, setLastResponse] = useState('')
   const goals = [
-    'Find out what github projects and other research has been done in the multi agent LLM space.',
-    'Find out how those projects handle communication between agents.',
+    'Find out what github projects and other research has been done in LLM token management.',
+    'Find out what methods does projects use to manage token usage and context fidelity with LLM generative AI models.',
+    'Browse any relevant page to locate sample code.',
     'Generate a report on the findings of the previous two goals to send to the user in markdown.',
+    'Generate sample code to send to the user.'
   ]
 
   const tools = {
@@ -39,7 +41,7 @@ export function LooperAgentComponent() {
     webScraperWorker: webScraperWorker,
     sendReport: sendReport,
   }
-  const cycleManager = new CycleManager(goals, tools, 18)
+  const cycleManager = new CycleManager(goals, tools, 1)
 
   const handleClick = async () => {
     await cycleManager.startCycle(0.2, setLastResponse)
